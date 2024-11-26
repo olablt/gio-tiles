@@ -8,14 +8,32 @@ import (
     "sync"
 )
 
-type TileManager struct {
-    cache map[string]image.Image
-    mutex sync.RWMutex
+type TileProvider interface {
+    GetTile(tile Tile) (image.Image, error)
 }
 
-func NewTileManager() *TileManager {
+type OSMTileProvider struct{}
+
+func (p *OSMTileProvider) GetTile(tile Tile) (image.Image, error) {
+    resp, err := http.Get(GetTileURL(tile))
+    if err != nil {
+        return nil, err
+    }
+    defer resp.Body.Close()
+
+    return image.Decode(resp.Body)
+}
+
+type TileManager struct {
+    cache    map[string]image.Image
+    mutex    sync.RWMutex
+    provider TileProvider
+}
+
+func NewTileManager(provider TileProvider) *TileManager {
     return &TileManager{
-        cache: make(map[string]image.Image),
+        cache:    make(map[string]image.Image),
+        provider: provider,
     }
 }
 
@@ -29,14 +47,7 @@ func (tm *TileManager) GetTile(tile Tile) (image.Image, error) {
     }
     tm.mutex.RUnlock()
 
-    // Download tile
-    resp, err := http.Get(GetTileURL(tile))
-    if err != nil {
-        return nil, err
-    }
-    defer resp.Body.Close()
-
-    img, _, err := image.Decode(resp.Body)
+    img, err := tm.provider.GetTile(tile)
     if err != nil {
         return nil, err
     }

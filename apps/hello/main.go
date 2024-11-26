@@ -21,7 +21,7 @@ type MapView struct {
 
 func NewMapView() *MapView {
 	return &MapView{
-		tileManager: maps.NewTileManager(),
+		tileManager: maps.NewTileManager(maps.NewLocalTileProvider()), // Use local provider
 		center:      maps.LatLng{Lat: 51.507222, Lng: -0.1275}, // London
 		zoom:        12,
 		list: &widget.List{
