@@ -59,6 +59,16 @@ This project is useful for understanding:
 - Caching strategies
 - Go UI development with Gio
 
+## TODO
+
+- [ ] Smooth zoom animation when scrolling
+- [ ] Animated transitions when moving to new coordinates
+- [ ] Mobile support
+  - [ ] Touch gestures for pan/zoom
+  - [ ] Responsive layout
+  - [ ] Mobile-friendly UI controls
+  - [ ] Handle different screen densities
+
 ## License
 
 MIT License
