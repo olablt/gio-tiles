@@ -1,11 +1,12 @@
 package main
 
 import (
-	"github.com/olablt/gio-maps/maps"
 	"image"
 	"log"
 	"math"
 	"os"
+
+	"github.com/olablt/gio-maps/maps"
 
 	"gioui.org/f32"
 	"gioui.org/io/event"
