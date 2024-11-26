@@ -28,7 +28,14 @@ func (p *LocalTileProvider) GetTile(tile Tile) (image.Image, error) {
 
     // Draw text background
     textBgColor := color.RGBA{255, 255, 255, 220}
-    textBgRect := image.Rect(96, 116, 160, 140) // Centered rectangle for text background
+    padding := 10
+    textWidth := basicfont.Face7x13.Metrics().Height.Round() * len(text) / 2
+    textBgRect := image.Rect(
+        128-textWidth/2-padding,
+        120-padding,
+        128+textWidth/2+padding,
+        140+padding/2,
+    )
     draw.Draw(img, textBgRect, &image.Uniform{textBgColor}, image.Point{}, draw.Over)
 
     // Set up the font drawer with black text
@@ -44,7 +51,7 @@ func (p *LocalTileProvider) GetTile(tile Tile) (image.Image, error) {
     
     // Position text in center of tile
     x := (256 - textWidth) / 2
-    y := 256 / 2
+    y := 130  // Adjusted for better vertical centering
     
     d.Dot = fixed.P(x, y)
     d.DrawString(text)
