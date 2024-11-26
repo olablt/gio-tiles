@@ -10,10 +10,13 @@ import (
 	"strings"
 
 	"gioui.org/f32"
+	"gioui.org/io/event"
+	"gioui.org/io/pointer"
 
 	"gioui.org/app"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/widget"
 )
@@ -42,12 +45,12 @@ type MapView struct {
 
 func NewMapView() *MapView {
 	return &MapView{
-		tileManager: maps.NewTileManager(maps.NewLocalTileProvider()), // Use local provider
-		// tileManager: maps.NewTileManager(maps.NewOSMTileProvider()),           // Use OSM provider
-		center:  maps.LatLng{Lat: initialLatitude, Lng: initialLongitude}, // London
-		zoom:    4,
-		minZoom: 0,
-		maxZoom: 19,
+		// tileManager: maps.NewTileManager(maps.NewLocalTileProvider()), // Use local provider
+		tileManager: maps.NewTileManager(maps.NewOSMTileProvider()),           // Use OSM provider
+		center:      maps.LatLng{Lat: initialLatitude, Lng: initialLongitude}, // London
+		zoom:        4,
+		minZoom:     0,
+		maxZoom:     19,
 		list: &widget.List{
 			List: layout.List{
 				Axis: layout.Vertical,
@@ -103,6 +106,33 @@ func (mv *MapView) updateVisibleTiles() {
 }
 
 func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
+
+	// Confine the area of interest to a gtx Max
+	defer clip.Rect{Max: gtx.Constraints.Max}.Push(gtx.Ops).Pop()
+	// Declare `tag` as being one of the targets.
+	tag := mv
+	event.Op(gtx.Ops, tag)
+	// Process events that arrived between the last frame and this one.
+	for {
+		ev, ok := gtx.Event(pointer.Filter{
+			Target: tag,
+			Kinds:  pointer.Scroll,
+		})
+		if !ok {
+			break
+		}
+
+		if x, ok := ev.(pointer.Event); ok {
+			log.Printf("pointer event %+v", x)
+			switch x.Kind {
+			case pointer.Press:
+				// pressed = true
+			case pointer.Release:
+				// pressed = false
+			}
+		}
+	}
+
 	// Update size if changed
 	if mv.size != gtx.Constraints.Max {
 		mv.size = gtx.Constraints.Max
@@ -158,8 +188,8 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 		tileWorldPy := float64(tile.Y * tileSize)
 
 		// Calculate final screen position
-		finalX := screenCenterX + int(tileWorldPx - centerWorldPx)
-		finalY := screenCenterY + int(tileWorldPy - centerWorldPy)
+		finalX := screenCenterX + int(tileWorldPx-centerWorldPx)
+		finalY := screenCenterY + int(tileWorldPy-centerWorldPy)
 
 		// Create transform stack and apply offset
 		transform := op.Offset(image.Point{X: finalX, Y: finalY}).Push(ops)
@@ -186,6 +216,8 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 	// mv.drag.Layout(gtx, func(gtx layout.Context, index int) layout.Dimensions {
 	// 	return layout.Dimensions{Size: image.Point{X: 256, Y: 256}}
 	// })
+
+	// areaStack.Pop()
 
 	return layout.Dimensions{Size: mv.size}
 }
