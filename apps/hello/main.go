@@ -71,7 +71,7 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 		mv.calculateVisibleTiles()
 	}
 
-	ops := &gtx.Ops
+	ops := gtx.Ops
 
 	// Draw all visible tiles
 	for _, tile := range mv.visibleTiles {
