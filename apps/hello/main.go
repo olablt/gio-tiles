@@ -144,22 +144,22 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 			continue
 		}
 
-		// Calculate position for this tile relative to center
-		centerTile := maps.LatLngToTile(mv.center, mv.zoom)
+		// Calculate center position in pixels at current zoom level
 		n := math.Pow(2, float64(mv.zoom))
+		centerWorldPx := float64(tileSize) * n * (mv.center.Lng + 180) / 360
+		centerWorldPy := float64(tileSize) * n * (1 - math.Log(math.Tan(mv.center.Lat*math.Pi/180)+1/math.Cos(mv.center.Lat*math.Pi/180))/math.Pi) / 2
 
-		// Get precise pixel coordinates for center
-		// Calculate tile positions using constants
-		centerPxX := float64(centerTile.X)*tileSize + (mv.center.Lng+180.0)/360.0*n*tileSize
-		centerPxY := float64(centerTile.Y)*tileSize + (1.0-math.Log(math.Tan(mv.center.Lat*math.Pi/180.0)+(1/math.Cos(mv.center.Lat*math.Pi/180.0)))/math.Pi)/2.0*n*tileSize
-
-		// Use integer division for screen centers
-		screenCenterX := mv.size.X >> 1 // Equivalent to / 2 but faster
+		// Calculate screen center
+		screenCenterX := mv.size.X >> 1
 		screenCenterY := mv.size.Y >> 1
 
-		// Position relative to window center
-		finalX := screenCenterX + int(float64(tile.X*tileSize)-centerPxX)
-		finalY := screenCenterY + int(float64(tile.Y*tileSize)-centerPxY)
+		// Calculate tile position in pixels
+		tileWorldPx := float64(tile.X * tileSize)
+		tileWorldPy := float64(tile.Y * tileSize)
+
+		// Calculate final screen position
+		finalX := screenCenterX + int(tileWorldPx - centerWorldPx)
+		finalY := screenCenterY + int(tileWorldPy - centerWorldPy)
 
 		// Create transform stack and apply offset
 		transform := op.Offset(image.Point{X: finalX, Y: finalY}).Push(ops)
