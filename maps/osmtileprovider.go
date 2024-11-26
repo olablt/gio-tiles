@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	_ "image/png"
+	"log"
 	"net/http"
 )
 
@@ -14,14 +15,29 @@ func NewOSMTileProvider() *OSMTileProvider {
 }
 
 func (p *OSMTileProvider) GetTile(tile Tile) (image.Image, error) {
-	resp, err := http.Get(p.GetTileURL(tile))
+	url := p.GetTileURL(tile)
+	log.Printf("Requesting OSM tile: %s", url)
+
+	resp, err := http.Get(url)
 	if err != nil {
+		log.Printf("Error fetching tile %v: %v", tile, err)
 		return nil, err
 	}
 	defer resp.Body.Close()
 
+	log.Printf("OSM tile response status: %s", resp.Status)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
 	img, _, err := image.Decode(resp.Body)
-	return img, err
+	if err != nil {
+		log.Printf("Error decoding tile image %v: %v", tile, err)
+		return nil, err
+	}
+	
+	log.Printf("Successfully loaded OSM tile: %v", tile)
+	return img, nil
 }
 
 // GetTileURL returns the URL for downloading the map tile
