@@ -8,6 +8,8 @@ import (
 	"math"
 	"os"
 	"strings"
+	
+	"gioui.org/f32"
 
 	"gioui.org/app"
 	"gioui.org/layout"
@@ -24,7 +26,7 @@ type MapView struct {
 	size         image.Point
 	visibleTiles []maps.Tile
 	drag         widget.Draggable
-	lastDragPos  image.Point
+	lastDragPos  f32.Point
 }
 
 func NewMapView() *MapView {
@@ -80,17 +82,15 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 	// Handle drag events
 	if mv.drag.Dragging() {
 		pos := mv.drag.Pos()
-		if mv.lastDragPos != pos {
+		if pos != mv.lastDragPos {
 			// Calculate the delta from last position
-			delta := image.Point{
-				X: pos.X - mv.lastDragPos.X,
-				Y: pos.Y - mv.lastDragPos.Y,
-			}
+			deltaX := pos.X - mv.lastDragPos.X
+			deltaY := pos.Y - mv.lastDragPos.Y
 			
 			// Convert screen movement to geographical coordinates
 			metersPerPixel := 156543.03392 * math.Cos(mv.center.Lat*math.Pi/180) / math.Pow(2, float64(mv.zoom))
-			latChange := float64(delta.Y) * metersPerPixel / 111319.9
-			lngChange := -float64(delta.X) * metersPerPixel / (111319.9 * math.Cos(mv.center.Lat*math.Pi/180))
+			latChange := float64(deltaY) * metersPerPixel / 111319.9
+			lngChange := -float64(deltaX) * metersPerPixel / (111319.9 * math.Cos(mv.center.Lat*math.Pi/180))
 			
 			mv.center.Lat -= latChange
 			mv.center.Lng -= lngChange
