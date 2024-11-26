@@ -5,14 +5,12 @@ import (
 	"image"
 	_ "image/png"
 	"log"
-	"net/http"
 	"sync"
 )
 
 type TileProvider interface {
 	GetTile(tile Tile) (image.Image, error)
 }
-
 
 type TileManager struct {
 	cache    map[string]image.Image
