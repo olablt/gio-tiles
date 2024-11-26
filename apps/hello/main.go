@@ -123,12 +123,14 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 		}
 
 		if x, ok := ev.(pointer.Event); ok {
-			log.Printf("pointer event %+v", x)
 			switch x.Kind {
-			case pointer.Press:
-				// pressed = true
-			case pointer.Release:
-				// pressed = false
+			case pointer.Scroll:
+				// Zoom in/out based on scroll direction
+				if x.Scroll.Y < 0 {
+					mv.setZoom(mv.zoom + 1)
+				} else if x.Scroll.Y > 0 {
+					mv.setZoom(mv.zoom - 1)
+				}
 			}
 		}
 	}
