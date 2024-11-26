@@ -9,6 +9,10 @@ import (
 
 type OSMTileProvider struct{}
 
+func NewOSMTileProvider() *OSMTileProvider {
+	return &OSMTileProvider{}
+}
+
 func (p *OSMTileProvider) GetTile(tile Tile) (image.Image, error) {
 	resp, err := http.Get(p.GetTileURL(tile))
 	if err != nil {
