@@ -57,5 +57,16 @@ func (p *LocalTileProvider) GetTile(tile Tile) (image.Image, error) {
 	d.Dot = fixed.P(x, y)
 	d.DrawString(text)
 
+	// Draw frame around tile
+	borderColor := color.RGBA{100, 100, 100, 255}
+	// Top border
+	draw.Draw(img, image.Rect(0, 0, 256, 1), &image.Uniform{borderColor}, image.Point{}, draw.Src)
+	// Bottom border
+	draw.Draw(img, image.Rect(0, 255, 256, 256), &image.Uniform{borderColor}, image.Point{}, draw.Src)
+	// Left border
+	draw.Draw(img, image.Rect(0, 0, 1, 256), &image.Uniform{borderColor}, image.Point{}, draw.Src)
+	// Right border
+	draw.Draw(img, image.Rect(255, 0, 256, 256), &image.Uniform{borderColor}, image.Point{}, draw.Src)
+
 	return img, nil
 }
