@@ -182,18 +182,6 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 		transform.Pop()
 	}
 
-	// w := func(gtx layout.Context) layout.Dimensions {
-	// 	// sz := image.Pt(10, 10) // drag area
-	// 	sz := gtx.Constraints.Max
-	// 	return layout.Dimensions{Size: sz}
-	// }
-	// mv.drag.Layout(gtx, w, w)
-	// // drag must respond with an Offer event when requested.
-	// // Use the drag method for this.
-	// if m, ok := mv.drag.Update(gtx); ok {
-	// 	mv.drag.Offer(gtx, m, io.NopCloser(strings.NewReader("hello world")))
-	// }
-
 	return layout.Dimensions{Size: mv.size}
 }
 
@@ -211,13 +199,13 @@ func NewMapView(refresh chan struct{}) *MapView {
 		default:
 		}
 	})
-	
+
 	return &MapView{
 		tileManager: tm,
-		center:  maps.LatLng{Lat: initialLatitude, Lng: initialLongitude}, // London
-		zoom:    4,
-		minZoom: 0,
-		maxZoom: 19,
+		center:      maps.LatLng{Lat: initialLatitude, Lng: initialLongitude}, // London
+		zoom:        4,
+		minZoom:     0,
+		maxZoom:     19,
 		list: &widget.List{
 			List: layout.List{
 				Axis: layout.Vertical,
