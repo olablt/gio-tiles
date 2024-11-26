@@ -97,8 +97,8 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 			mv.calculateVisibleTiles()
 			mv.lastDragPos = pos
 		}
-	} else {
-		// Reset last drag position when not dragging
+	} else if mv.drag.Released() {
+		// Only update lastDragPos when drag is released
 		mv.lastDragPos = mv.drag.Pos()
 	}
 
