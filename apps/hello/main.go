@@ -22,7 +22,7 @@ import (
 const (
 	initialLatitude  = 51.507222 // London
 	initialLongitude = -0.1275
-	tileSize        = 256
+	tileSize         = 256
 )
 
 type MapView struct {
@@ -204,10 +204,10 @@ func NewMapView() *MapView {
 				maps.NewLocalTileProvider(),
 			),
 		),
-		center:      maps.LatLng{Lat: initialLatitude, Lng: initialLongitude}, // London
-		zoom:        4,
-		minZoom:     0,
-		maxZoom:     19,
+		center:  maps.LatLng{Lat: initialLatitude, Lng: initialLongitude}, // London
+		zoom:    4,
+		minZoom: 0,
+		maxZoom: 19,
 		list: &widget.List{
 			List: layout.List{
 				Axis: layout.Vertical,
@@ -232,12 +232,17 @@ func (mv *MapView) updateVisibleTiles() {
 }
 
 func main() {
+	var refresh chan struct{}
+	mv := NewMapView()
 	go func() {
 		w := new(app.Window)
 
-		mv := NewMapView()
-
 		var ops op.Ops
+		go func() {
+			for range refresh {
+				w.Invalidate()
+			}
+		}()
 		for {
 			switch e := w.Event().(type) {
 			case app.DestroyEvent:
