@@ -2,6 +2,7 @@ package main
 
 import (
 	"gio-maps/maps"
+	"image"
 	"log"
 	"os"
 
@@ -13,11 +14,11 @@ import (
 )
 
 type MapView struct {
-	tileManager *maps.TileManager
-	center      maps.LatLng
-	zoom        int
-	list        *widget.List
-	size        image.Point
+	tileManager  *maps.TileManager
+	center       maps.LatLng
+	zoom         int
+	list         *widget.List
+	size         image.Point
 	visibleTiles []maps.Tile
 }
 
@@ -37,21 +38,21 @@ func NewMapView() *MapView {
 func (mv *MapView) calculateVisibleTiles() {
 	// Calculate center tile
 	centerTile := maps.LatLngToTile(mv.center, mv.zoom)
-	
+
 	// Calculate how many tiles we need in each direction based on window size
 	tilesX := (mv.size.X / 256) + 2 // Add buffer tiles
 	tilesY := (mv.size.Y / 256) + 2
-	
+
 	startX := centerTile.X - tilesX/2
 	startY := centerTile.Y - tilesY/2
-	
+
 	mv.visibleTiles = make([]maps.Tile, 0, tilesX*tilesY)
-	
+
 	for x := startX; x < startX+tilesX; x++ {
 		for y := startY; y < startY+tilesY; y++ {
 			mv.visibleTiles = append(mv.visibleTiles, maps.Tile{
-				X: x,
-				Y: y,
+				X:    x,
+				Y:    y,
 				Zoom: mv.zoom,
 			})
 		}
