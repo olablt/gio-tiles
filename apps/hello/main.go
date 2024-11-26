@@ -27,6 +27,7 @@ type MapView struct {
 	visibleTiles []maps.Tile
 	drag         widget.Draggable
 	lastDragPos  f32.Point
+	released     bool
 }
 
 func NewMapView() *MapView {
@@ -43,7 +44,27 @@ func NewMapView() *MapView {
 	}
 }
 
-func (mv *MapView) calculateVisibleTiles() {
+func (mv *MapView) updateVisibleTiles() {
+	// // Calculate bounding box in terms of tiles
+	// topLeftTile := maps.LatLngToTile(mv.topLeft(), mv.zoom)
+	// bottomRightTile := maps.LatLngToTile(mv.bottomRight(), mv.zoom)
+
+	// mv.visibleTiles = make([]maps.Tile, 0)
+	// for x := topLeftTile.X; x <= bottomRightTile.X; x++ {
+	// 	for y := topLeftTile.Y; y <= bottomRightTile.Y; y++ {
+	// 		mv.visibleTiles = append(mv.visibleTiles, maps.Tile{
+	// 			X:    x,
+	// 			Y:    y,
+	// 			Zoom: mv.zoom,
+	// 		})
+	// 	}
+	// }
+
+	// // Asynchronously load tiles
+	// for _, tile := range mv.visibleTiles {
+	// 	go mv.tileManager.GetTile(tile)
+	// }
+
 	// Calculate center tile
 	centerTile := maps.LatLngToTile(mv.center, mv.zoom)
 
@@ -76,12 +97,16 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 	// Update size if changed
 	if mv.size != gtx.Constraints.Max {
 		mv.size = gtx.Constraints.Max
-		mv.calculateVisibleTiles()
+		mv.updateVisibleTiles()
 	}
 
 	// Handle drag events
 	if mv.drag.Dragging() {
 		pos := mv.drag.Pos()
+		if mv.released {
+			mv.lastDragPos = pos
+			mv.released = false
+		}
 		if pos != mv.lastDragPos {
 			// Calculate the delta from last position
 			deltaX := pos.X - mv.lastDragPos.X
@@ -94,41 +119,12 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 
 			mv.center.Lat += latChange
 			mv.center.Lng += lngChange
-			mv.calculateVisibleTiles()
+			mv.updateVisibleTiles()
 			mv.lastDragPos = pos
 		}
 	} else {
-		// Update lastDragPos when not dragging
-		newPos := mv.drag.Pos()
-		if newPos != mv.lastDragPos {
-			mv.lastDragPos = newPos
-		}
+		mv.released = true
 	}
-
-	// // Handle drag events
-	// for _, e := range mv.drag.Events(gtx.Metric, gtx, gesture.Both) {
-	// 	switch e.Type {
-	// 	case pointer.Drag:
-	// 		// Calculate the change in position
-	// 		delta := e.Position.Sub(mv.lastDragPos)
-	// 		mv.lastDragPos = e.Position
-	// 		// Convert screen movement to geographical coordinates
-	// 		// The conversion factor depends on the zoom level
-	// 		// At zoom level z, one pixel represents roughly 156543.03392 * cos(lat) / 2^z meters
-	// 		metersPerPixel := 156543.03392 * math.Cos(mv.center.Lat*math.Pi/180) / math.Pow(2, float64(mv.zoom))
-	// 		// Convert pixel movement to degrees
-	// 		// 111319.9 is the number of meters per degree at the equator
-	// 		latChange := -delta.Y * metersPerPixel / 111319.9
-	// 		lngChange := -delta.X * metersPerPixel / (111319.9 * math.Cos(mv.center.Lat*math.Pi/180))
-	// 		mv.center.Lat += latChange
-	// 		mv.center.Lng += lngChange
-	// 		mv.calculateVisibleTiles()
-	// 	case pointer.Press:
-	// 		mv.lastDragPos = e.Position
-	// 	}
-	// }
-	// // Add the drag input area
-	// mv.drag.Add(gtx.Ops)
 
 	ops := gtx.Ops
 
