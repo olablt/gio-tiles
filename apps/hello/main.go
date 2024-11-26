@@ -29,10 +29,10 @@ type MapView struct {
 
 func NewMapView() *MapView {
 	return &MapView{
-		// tileManager: maps.NewTileManager(maps.NewLocalTileProvider()), // Use local provider
-		tileManager: maps.NewTileManager(maps.NewOSMTileProvider()), // Use OSM provider
-		center:      maps.LatLng{Lat: 51.507222, Lng: -0.1275},      // London
-		zoom:        4,
+		tileManager: maps.NewTileManager(maps.NewLocalTileProvider()), // Use local provider
+		// tileManager: maps.NewTileManager(maps.NewOSMTileProvider()), // Use OSM provider
+		center: maps.LatLng{Lat: 51.507222, Lng: -0.1275}, // London
+		zoom:   4,
 		list: &widget.List{
 			List: layout.List{
 				Axis: layout.Vertical,
