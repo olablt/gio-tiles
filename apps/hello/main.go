@@ -74,10 +74,10 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 	// Create operations stack
 	ops := new(op.Ops)
 
-	// Create a stack for all operations
-	stack := op.Stack{}
-	stack.Push(ops)
-	defer stack.Pop()
+	// // Create a stack for all operations
+	// stack := op.Stack{}
+	// stack.Push(ops)
+	// defer stack.Pop()
 
 	// Draw all visible tiles
 	for _, tile := range mv.visibleTiles {
@@ -92,12 +92,13 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 		offsetX := (tile.X - centerTile.X) * 256
 		offsetY := (tile.Y - centerTile.Y) * 256
 
-		// Create a transform stack for this tile
-		tileStack := op.Stack{}
-		tileStack.Push(ops)
+		// // Create a transform stack for this tile
+		// tileStack := op.Stack{}
+		// tileStack.Push(ops)
 
 		// Apply offset transform
-		op.Offset(image.Point{X: offsetX, Y: offsetY}).Add(ops)
+		// op.Offset(image.Point{X: offsetX, Y: offsetY}).Add(ops)
+		transform := op.Offset(image.Point{X: offsetX, Y: offsetY}).Push(ops)
 
 		// Draw the tile
 		imageOp := paint.NewImageOp(img)
@@ -107,7 +108,10 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 			Fit: widget.Contain,
 		}.Layout(gtx)
 
-		tileStack.Pop()
+		// Pop the transform stack
+		transform.Pop()
+
+		// tileStack.Pop()
 	}
 
 	return layout.Dimensions{Size: mv.size}
