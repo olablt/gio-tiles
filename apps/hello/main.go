@@ -74,33 +74,43 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 	// Create operations stack
 	ops := new(op.Ops)
 
-	return layout.Flex{}.Layout(gtx,
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			// Draw all visible tiles
-			for _, tile := range mv.visibleTiles {
-				img, err := mv.tileManager.GetTile(tile)
-				if err != nil {
-					log.Printf("Error loading tile %v: %v", tile, err)
-					continue
-				}
+	// Create a stack for all operations
+	stack := op.Stack{}
+	stack.Push(ops)
+	defer stack.Pop()
 
-				imageOp := paint.NewImageOp(img)
-				imageOp.Add(ops)
+	// Draw all visible tiles
+	for _, tile := range mv.visibleTiles {
+		img, err := mv.tileManager.GetTile(tile)
+		if err != nil {
+			log.Printf("Error loading tile %v: %v", tile, err)
+			continue
+		}
 
-				// Calculate position for this tile relative to center
-				centerTile := maps.LatLngToTile(mv.center, mv.zoom)
-				offsetX := (tile.X - centerTile.X) * 256
-				offsetY := (tile.Y - centerTile.Y) * 256
+		// Calculate position for this tile relative to center
+		centerTile := maps.LatLngToTile(mv.center, mv.zoom)
+		offsetX := (tile.X - centerTile.X) * 256
+		offsetY := (tile.Y - centerTile.Y) * 256
 
-				defer op.Offset(image.Pt(offsetX, offsetY)).Push(ops).Pop()
-				widget.Image{
-					Src: imageOp,
-					Fit: widget.Contain,
-				}.Layout(gtx)
-			}
-			return layout.Dimensions{Size: mv.size}
-		}),
-	)
+		// Create a transform stack for this tile
+		tileStack := op.Stack{}
+		tileStack.Push(ops)
+
+		// Apply offset transform
+		op.Offset(image.Point{X: offsetX, Y: offsetY}).Add(ops)
+
+		// Draw the tile
+		imageOp := paint.NewImageOp(img)
+		imageOp.Add(ops)
+		widget.Image{
+			Src: imageOp,
+			Fit: widget.Contain,
+		}.Layout(gtx)
+
+		tileStack.Pop()
+	}
+
+	return layout.Dimensions{Size: mv.size}
 }
 
 func main() {
