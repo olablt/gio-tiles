@@ -66,12 +66,54 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 				mv.clickPos = x.Position
 				mv.dragging = true
 			case pointer.Scroll:
-				// log.Println("pointer.Scroll", x.Scroll)
-				// Zoom in/out based on scroll direction
+				// Get mouse position relative to screen center
+				screenCenterX := float64(mv.size.X >> 1)
+				screenCenterY := float64(mv.size.Y >> 1)
+				mouseOffsetX := float64(x.Position.X) - screenCenterX
+				mouseOffsetY := float64(x.Position.Y) - screenCenterY
+
+				// Convert screen coordinates to world coordinates at current zoom
+				n := math.Pow(2, float64(mv.zoom))
+				worldX := float64(tileSize) * n * (mv.center.Lng + 180) / 360
+				worldY := float64(tileSize) * n * (1 - math.Log(math.Tan(mv.center.Lat*math.Pi/180)+1/math.Cos(mv.center.Lat*math.Pi/180))/math.Pi) / 2
+
+				// Get world coordinates under mouse
+				mouseWorldX := worldX + mouseOffsetX
+				mouseWorldY := worldY + mouseOffsetY
+
+				// Convert to geographical coordinates
+				mouseLng := (mouseWorldX/(float64(tileSize)*n))*360 - 180
+				mouseLatRad := math.Pi * (1 - 2*mouseWorldY/(float64(tileSize)*n))
+				mouseLat := 180 / math.Pi * math.Atan(math.Sinh(mouseLatRad))
+
+				// Store old zoom level
+				oldZoom := mv.zoom
+
+				// Update zoom level
 				if x.Scroll.Y < 0 {
 					mv.setZoom(mv.zoom + 1)
 				} else if x.Scroll.Y > 0 {
 					mv.setZoom(mv.zoom - 1)
+				}
+
+				// If zoom changed, adjust center to keep mouse position fixed
+				if oldZoom != mv.zoom {
+					// Calculate the new world coordinates after zoom
+					zoomFactor := math.Pow(2, float64(mv.zoom-oldZoom))
+					newWorldX := mouseWorldX * zoomFactor
+					newWorldY := mouseWorldY * zoomFactor
+
+					// Calculate where the new center should be
+					newWorldCenterX := newWorldX - mouseOffsetX
+					newWorldCenterY := newWorldY - mouseOffsetY
+
+					// Convert back to geographical coordinates
+					n = math.Pow(2, float64(mv.zoom))
+					mv.center.Lng = (newWorldCenterX/(float64(tileSize)*n))*360 - 180
+					latRad := math.Pi * (1 - 2*newWorldCenterY/(float64(tileSize)*n))
+					mv.center.Lat = 180 / math.Pi * math.Atan(math.Sinh(latRad))
+
+					mv.updateVisibleTiles()
 				}
 			case pointer.Drag:
 				dragDelta = x.Position.Sub(mv.clickPos)
