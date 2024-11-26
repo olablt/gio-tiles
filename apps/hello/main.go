@@ -171,8 +171,12 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 
 func NewMapView() *MapView {
 	return &MapView{
-		// tileManager: maps.NewTileManager(maps.NewLocalTileProvider()), // Use local provider
-		tileManager: maps.NewTileManager(maps.NewOSMTileProvider()),           // Use OSM provider
+		tileManager: maps.NewTileManager(
+			maps.NewCombinedTileProvider(
+				maps.NewOSMTileProvider(),
+				maps.NewLocalTileProvider(),
+			),
+		),
 		center:      maps.LatLng{Lat: initialLatitude, Lng: initialLongitude}, // London
 		zoom:        4,
 		minZoom:     0,

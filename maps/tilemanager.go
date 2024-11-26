@@ -24,8 +24,13 @@ func NewTileManager(provider TileProvider) *TileManager {
 	}
 }
 
+// getTileKey returns a unique string key for a tile
+func getTileKey(tile Tile) string {
+	return fmt.Sprintf("%d/%d/%d", tile.Zoom, tile.X, tile.Y)
+}
+
 func (tm *TileManager) GetTile(tile Tile) (image.Image, error) {
-	key := fmt.Sprintf("%d/%d/%d", tile.Zoom, tile.X, tile.Y)
+	key := getTileKey(tile)
 	// log.Println("GetTile", key)
 
 	tm.mutex.RLock()
