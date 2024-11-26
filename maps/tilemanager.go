@@ -21,7 +21,8 @@ func (p *OSMTileProvider) GetTile(tile Tile) (image.Image, error) {
     }
     defer resp.Body.Close()
 
-    return image.Decode(resp.Body)
+    img, _, err := image.Decode(resp.Body)
+    return img, err
 }
 
 type TileManager struct {
