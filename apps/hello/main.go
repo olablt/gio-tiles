@@ -86,12 +86,18 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 		offsetX := (tile.X - centerTile.X) * 256
 		offsetY := (tile.Y - centerTile.Y) * 256
 
+		// Center the view in the window
+		screenCenterX := mv.size.X / 2
+		screenCenterY := mv.size.Y / 2
+		finalX := screenCenterX + offsetX - 128 // 128 is half tile size
+		finalY := screenCenterY + offsetY - 128
+
 		// Create transform stack and apply offset
-		transform := op.Offset(image.Point{X: offsetX, Y: offsetY}).Push(ops)
+		transform := op.Offset(image.Point{X: finalX, Y: finalY}).Push(ops)
 
 		// Draw the tile
-		op := paint.NewImageOp(img)
-		op.Add(ops)
+		imageOp := paint.NewImageOp(img)
+		imageOp.Add(ops)
 		paint.PaintOp{}.Add(ops)
 
 		transform.Pop()
