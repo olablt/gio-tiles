@@ -19,10 +19,10 @@ import (
 )
 
 const (
-	tileSize       = 256
+	tileSize           = 256
 	earthCircumference = 40075016.686 // meters at equator
-	initialLatitude   = 51.507222     // London
-	initialLongitude = -0.1275
+	initialLatitude    = 51.507222    // London
+	initialLongitude   = -0.1275
 )
 
 type MapView struct {
@@ -97,7 +97,7 @@ func (mv *MapView) updateVisibleTiles() {
 	tilesY := (mv.size.Y / tileSize) + 2
 
 	// Update meters per pixel for this zoom level and latitude
-	mv.metersPerPixel = earthCircumference * math.Cos(mv.center.Lat*math.Pi/180) / 
+	mv.metersPerPixel = earthCircumference * math.Cos(mv.center.Lat*math.Pi/180) /
 		(math.Pow(2, float64(mv.zoom)) * tileSize)
 
 	startX := centerTile.X - tilesX/2
@@ -174,7 +174,7 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 		centerPxY := float64(centerTile.Y)*tileSize + (1.0-math.Log(math.Tan(mv.center.Lat*math.Pi/180.0)+(1/math.Cos(mv.center.Lat*math.Pi/180.0)))/math.Pi)/2.0*n*tileSize
 
 		// Use integer division for screen centers
-		screenCenterX := mv.size.X >> 1  // Equivalent to / 2 but faster
+		screenCenterX := mv.size.X >> 1 // Equivalent to / 2 but faster
 		screenCenterY := mv.size.Y >> 1
 
 		// Position relative to window center
