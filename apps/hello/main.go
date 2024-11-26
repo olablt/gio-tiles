@@ -91,11 +91,12 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 
 		// Draw the tile
 		imageOp := paint.NewImageOp(img)
-		imageOp.Add(ops)
-		widget.Image{
-			Src: imageOp,
-			Fit: widget.Contain,
-		}.Layout(gtx)
+		paint.PaintOp{
+			Rect: image.Rectangle{
+				Min: image.Point{},
+				Max: image.Point{X: 256, Y: 256},
+			},
+		}.Add(ops)
 
 		transform.Pop()
 	}
