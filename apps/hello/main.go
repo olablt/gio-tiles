@@ -77,21 +77,29 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 		mv.calculateVisibleTiles()
 	}
 
+	// Handle drag events
 	if mv.drag.Dragging() {
-		log.Println("Dragging")
-		// pos drag position relative to its initial click position
 		pos := mv.drag.Pos()
-		// convert screen movement to geographical coordinates
-		// the conversion factor depends on the zoom level
-		// at zoom level z, one pixel represents roughly 156543.03392 * cos(lat) / 2^z meters
-		metersPerPixel := 156543.03392 * math.Cos(mv.center.Lat) / math.Pow(2, float64(mv.zoom))
-		// convert pixel movement to degrees
-		// 111319.9 is the number of meters per degree at the equator
-		latChange := -float64(pos.Y) * metersPerPixel / 111319.9
-		lngChange := -float64(pos.X) * metersPerPixel / (111319.9 * math.Cos(mv.center.Lat))
-		mv.center.Lat += latChange
-		mv.center.Lng += lngChange
-		mv.calculateVisibleTiles()
+		if mv.lastDragPos != pos {
+			// Calculate the delta from last position
+			delta := image.Point{
+				X: pos.X - mv.lastDragPos.X,
+				Y: pos.Y - mv.lastDragPos.Y,
+			}
+			
+			// Convert screen movement to geographical coordinates
+			metersPerPixel := 156543.03392 * math.Cos(mv.center.Lat*math.Pi/180) / math.Pow(2, float64(mv.zoom))
+			latChange := float64(delta.Y) * metersPerPixel / 111319.9
+			lngChange := -float64(delta.X) * metersPerPixel / (111319.9 * math.Cos(mv.center.Lat*math.Pi/180))
+			
+			mv.center.Lat -= latChange
+			mv.center.Lng -= lngChange
+			mv.calculateVisibleTiles()
+			mv.lastDragPos = pos
+		}
+	} else {
+		// Reset last drag position when not dragging
+		mv.lastDragPos = mv.drag.Pos()
 	}
 
 	// // Handle drag events
