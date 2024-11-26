@@ -23,7 +23,7 @@ func NewMapView() *MapView {
 	return &MapView{
 		tileManager: maps.NewTileManager(maps.NewLocalTileProvider()), // Use local provider
 		center:      maps.LatLng{Lat: 51.507222, Lng: -0.1275},        // London
-		zoom:        12,
+		zoom:        4,
 		list: &widget.List{
 			List: layout.List{
 				Axis: layout.Vertical,
