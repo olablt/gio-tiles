@@ -40,21 +40,18 @@ func (p *LocalTileProvider) GetTile(tile Tile) (image.Image, error) {
 	draw.Draw(img, textBgRect, &image.Uniform{textBgColor}, image.Point{}, draw.Over)
 
 	// Set up the font drawer with black text
+	point := fixed.Point26_6{
+		X: fixed.I((256 - textWidth) / 2),
+		Y: fixed.I(130), // Vertical position
+	}
+	
 	d := &font.Drawer{
 		Dst:  img,
 		Src:  image.NewUniform(color.RGBA{0, 0, 0, 255}),
 		Face: basicfont.Face7x13,
-		Dot:  fixed.Point26_6{},
+		Dot:  point,
 	}
 
-	// Calculate text width to center it
-	textWidth = d.MeasureString(text).Round()
-
-	// Position text in center of tile
-	x := (256 - textWidth) / 2
-	y := 130 // Adjusted for better vertical centering
-
-	d.Dot = fixed.P(x, y)
 	d.DrawString(text)
 
 	// Draw frame around tile
