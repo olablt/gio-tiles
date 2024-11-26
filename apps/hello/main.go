@@ -8,7 +8,7 @@ import (
 	"math"
 	"os"
 	"strings"
-	
+
 	"gioui.org/f32"
 
 	"gioui.org/app"
@@ -86,12 +86,12 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 			// Calculate the delta from last position
 			deltaX := pos.X - mv.lastDragPos.X
 			deltaY := pos.Y - mv.lastDragPos.Y
-			
+
 			// Convert screen movement to geographical coordinates
 			metersPerPixel := 156543.03392 * math.Cos(mv.center.Lat*math.Pi/180) / math.Pow(2, float64(mv.zoom))
 			latChange := float64(deltaY) * metersPerPixel / 111319.9
 			lngChange := -float64(deltaX) * metersPerPixel / (111319.9 * math.Cos(mv.center.Lat*math.Pi/180))
-			
+
 			mv.center.Lat -= latChange
 			mv.center.Lng -= lngChange
 			mv.calculateVisibleTiles()
@@ -140,18 +140,18 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 		// Calculate position for this tile relative to center
 		centerTile := maps.LatLngToTile(mv.center, mv.zoom)
 		n := math.Pow(2, float64(mv.zoom))
-		
+
 		// Get precise pixel coordinates for center
 		centerPxX := float64(centerTile.X)*256 + (mv.center.Lng+180.0)/360.0*n*256
 		centerPxY := float64(centerTile.Y)*256 + (1.0-math.Log(math.Tan(mv.center.Lat*math.Pi/180.0)+(1/math.Cos(mv.center.Lat*math.Pi/180.0)))/math.Pi)/2.0*n*256
-		
+
 		// Calculate screen position
 		screenCenterX := mv.size.X / 2
 		screenCenterY := mv.size.Y / 2
-		
+
 		// Position relative to window center
-		finalX := screenCenterX + int(float64(tile.X*256) - centerPxX)
-		finalY := screenCenterY + int(float64(tile.Y*256) - centerPxY)
+		finalX := screenCenterX + int(float64(tile.X*256)-centerPxX)
+		finalY := screenCenterY + int(float64(tile.Y*256)-centerPxY)
 
 		// Create transform stack and apply offset
 		transform := op.Offset(image.Point{X: finalX, Y: finalY}).Push(ops)
