@@ -2,6 +2,8 @@
 
 A Go implementation of map tiling using the [Gio UI toolkit](https://gioui.org/). This project serves as an educational example of how map tiling systems work and how to implement them in Go.
 
+![Map Screenshot](docs/2024-11-26_21-35.png)
+
 ## Features
 
 - Implements map tiling system from scratch
