@@ -18,25 +18,33 @@ import (
 	"gioui.org/widget"
 )
 
+const (
+	tileSize       = 256
+	earthCircumference = 40075016.686 // meters at equator
+	initialLatitude   = 51.507222     // London
+	initialLongitude = -0.1275
+)
+
 type MapView struct {
-	tileManager  *maps.TileManager
-	center       maps.LatLng
-	zoom         int
-	minZoom      int
-	maxZoom      int
-	list         *widget.List
-	size         image.Point
-	visibleTiles []maps.Tile
-	drag         widget.Draggable
-	lastDragPos  f32.Point
-	released     bool
+	tileManager    *maps.TileManager
+	center         maps.LatLng
+	zoom           int
+	minZoom        int
+	maxZoom        int
+	list           *widget.List
+	size           image.Point
+	visibleTiles   []maps.Tile
+	drag           widget.Draggable
+	lastDragPos    f32.Point
+	released       bool
+	metersPerPixel float64 // cached calculation
 }
 
 func NewMapView() *MapView {
 	return &MapView{
 		tileManager: maps.NewTileManager(maps.NewLocalTileProvider()), // Use local provider
 		// tileManager: maps.NewTileManager(maps.NewOSMTileProvider()), // Use OSM provider
-		center:  maps.LatLng{Lat: 51.507222, Lng: -0.1275}, // London
+		center:  maps.LatLng{Lat: initialLatitude, Lng: initialLongitude}, // London
 		zoom:    4,
 		minZoom: 0,
 		maxZoom: 19,
@@ -85,8 +93,12 @@ func (mv *MapView) updateVisibleTiles() {
 	centerTile := maps.LatLngToTile(mv.center, mv.zoom)
 
 	// Calculate how many tiles we need in each direction based on window size
-	tilesX := (mv.size.X / 256) + 2 // Add buffer tiles
-	tilesY := (mv.size.Y / 256) + 2
+	tilesX := (mv.size.X / tileSize) + 2 // Add buffer tiles
+	tilesY := (mv.size.Y / tileSize) + 2
+
+	// Update meters per pixel for this zoom level and latitude
+	mv.metersPerPixel = earthCircumference * math.Cos(mv.center.Lat*math.Pi/180) / 
+		(math.Pow(2, float64(mv.zoom)) * tileSize)
 
 	startX := centerTile.X - tilesX/2
 	startY := centerTile.Y - tilesY/2
@@ -129,10 +141,9 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 			deltaX := pos.X - mv.lastDragPos.X
 			deltaY := pos.Y - mv.lastDragPos.Y
 
-			// Convert screen movement to geographical coordinates
-			metersPerPixel := 156543.03392 * math.Cos(mv.center.Lat*math.Pi/180) / math.Pow(2, float64(mv.zoom))
-			latChange := float64(deltaY) * metersPerPixel / 111319.9
-			lngChange := -float64(deltaX) * metersPerPixel / (111319.9 * math.Cos(mv.center.Lat*math.Pi/180))
+			// Convert screen movement to geographical coordinates using cached metersPerPixel
+			latChange := float64(deltaY) * mv.metersPerPixel / 111319.9
+			lngChange := -float64(deltaX) * mv.metersPerPixel / (111319.9 * math.Cos(mv.center.Lat*math.Pi/180))
 
 			mv.center.Lat += latChange
 			mv.center.Lng += lngChange
@@ -158,16 +169,17 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 		n := math.Pow(2, float64(mv.zoom))
 
 		// Get precise pixel coordinates for center
-		centerPxX := float64(centerTile.X)*256 + (mv.center.Lng+180.0)/360.0*n*256
-		centerPxY := float64(centerTile.Y)*256 + (1.0-math.Log(math.Tan(mv.center.Lat*math.Pi/180.0)+(1/math.Cos(mv.center.Lat*math.Pi/180.0)))/math.Pi)/2.0*n*256
+		// Calculate tile positions using constants
+		centerPxX := float64(centerTile.X)*tileSize + (mv.center.Lng+180.0)/360.0*n*tileSize
+		centerPxY := float64(centerTile.Y)*tileSize + (1.0-math.Log(math.Tan(mv.center.Lat*math.Pi/180.0)+(1/math.Cos(mv.center.Lat*math.Pi/180.0)))/math.Pi)/2.0*n*tileSize
 
-		// Calculate screen position
-		screenCenterX := mv.size.X / 2
-		screenCenterY := mv.size.Y / 2
+		// Use integer division for screen centers
+		screenCenterX := mv.size.X >> 1  // Equivalent to / 2 but faster
+		screenCenterY := mv.size.Y >> 1
 
 		// Position relative to window center
-		finalX := screenCenterX + int(float64(tile.X*256)-centerPxX)
-		finalY := screenCenterY + int(float64(tile.Y*256)-centerPxY)
+		finalX := screenCenterX + int(float64(tile.X*tileSize)-centerPxX)
+		finalY := screenCenterY + int(float64(tile.Y*tileSize)-centerPxY)
 
 		// Create transform stack and apply offset
 		transform := op.Offset(image.Point{X: finalX, Y: finalY}).Push(ops)
