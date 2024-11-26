@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"image"
 	_ "image/png"
-	"log"
 	"sync"
 )
 
@@ -27,7 +26,7 @@ func NewTileManager(provider TileProvider) *TileManager {
 
 func (tm *TileManager) GetTile(tile Tile) (image.Image, error) {
 	key := fmt.Sprintf("%d/%d/%d", tile.Zoom, tile.X, tile.Y)
-	log.Println("GetTile", key)
+	// log.Println("GetTile", key)
 
 	tm.mutex.RLock()
 	if img, exists := tm.cache[key]; exists {
