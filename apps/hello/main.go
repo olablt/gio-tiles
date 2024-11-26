@@ -20,10 +20,8 @@ import (
 )
 
 const (
-	tileSize           = 256
-	earthCircumference = 40075016.686 // meters at equator
-	initialLatitude    = 51.507222    // London
-	initialLongitude   = -0.1275
+	initialLatitude  = 51.507222 // London
+	initialLongitude = -0.1275
 )
 
 type MapView struct {
@@ -73,11 +71,7 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 				mouseOffsetY := float64(x.Position.Y) - screenCenterY
 
 				// Convert screen coordinates to world coordinates at current zoom
-				n := math.Pow(2, float64(mv.zoom))
-				worldX := float64(tileSize) * n * (mv.center.Lng + 180) / 360
-				worldY := float64(tileSize) * n * (1 - math.Log(math.Tan(mv.center.Lat*math.Pi/180)+1/math.Cos(mv.center.Lat*math.Pi/180))/math.Pi) / 2
-
-				// Get world coordinates under mouse
+				worldX, worldY := maps.CalculateWorldCoordinates(mv.center, mv.zoom)
 				mouseWorldX := worldX + mouseOffsetX
 				mouseWorldY := worldY + mouseOffsetY
 
@@ -103,10 +97,7 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 					newWorldCenterY := newWorldY - mouseOffsetY
 
 					// Convert back to geographical coordinates
-					n = math.Pow(2, float64(mv.zoom))
-					mv.center.Lng = (newWorldCenterX/(float64(tileSize)*n))*360 - 180
-					latRad := math.Pi * (1 - 2*newWorldCenterY/(float64(tileSize)*n))
-					mv.center.Lat = 180 / math.Pi * math.Atan(math.Sinh(latRad))
+					mv.center = maps.WorldToLatLng(newWorldCenterX, newWorldCenterY, mv.zoom)
 
 					mv.updateVisibleTiles()
 				}
@@ -164,9 +155,7 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 		}
 
 		// Calculate center position in pixels at current zoom level
-		n := math.Pow(2, float64(mv.zoom))
-		centerWorldPx := float64(tileSize) * n * (mv.center.Lng + 180) / 360
-		centerWorldPy := float64(tileSize) * n * (1 - math.Log(math.Tan(mv.center.Lat*math.Pi/180)+1/math.Cos(mv.center.Lat*math.Pi/180))/math.Pi) / 2
+		centerWorldPx, centerWorldPy := maps.CalculateWorldCoordinates(mv.center, mv.zoom)
 
 		// Calculate screen center
 		screenCenterX := mv.size.X >> 1
@@ -226,45 +215,14 @@ func NewMapView() *MapView {
 	}
 }
 
-func (mv *MapView) constrainTile(tile maps.Tile) maps.Tile {
-	maxTile := int(math.Pow(2, float64(tile.Zoom))) - 1
-	tile.X = max(0, min(tile.X, maxTile))
-	tile.Y = max(0, min(tile.Y, maxTile))
-	return tile
-}
-
 func (mv *MapView) setZoom(newZoom int) {
 	mv.zoom = max(mv.minZoom, min(newZoom, mv.maxZoom))
 	mv.updateVisibleTiles()
 }
 
 func (mv *MapView) updateVisibleTiles() {
-	// Calculate center tile
-	centerTile := maps.LatLngToTile(mv.center, mv.zoom)
-
-	// Calculate how many tiles we need in each direction based on window size
-	tilesX := (mv.size.X / tileSize) + 2 // Add buffer tiles
-	tilesY := (mv.size.Y / tileSize) + 2
-
-	// Update meters per pixel for this zoom level and latitude
-	mv.metersPerPixel = earthCircumference * math.Cos(mv.center.Lat*math.Pi/180) /
-		(math.Pow(2, float64(mv.zoom)) * tileSize)
-
-	startX := centerTile.X - tilesX/2
-	startY := centerTile.Y - tilesY/2
-
-	mv.visibleTiles = make([]maps.Tile, 0, tilesX*tilesY)
-
-	for x := startX; x < startX+tilesX; x++ {
-		for y := startY; y < startY+tilesY; y++ {
-			tile := mv.constrainTile(maps.Tile{
-				X:    x,
-				Y:    y,
-				Zoom: mv.zoom,
-			})
-			mv.visibleTiles = append(mv.visibleTiles, tile)
-		}
-	}
+	mv.metersPerPixel = maps.CalculateMetersPerPixel(mv.center.Lat, mv.zoom)
+	mv.visibleTiles = maps.CalculateVisibleTiles(mv.center, mv.zoom, mv.size)
 
 	// Start loading tiles asynchronously
 	for _, tile := range mv.visibleTiles {
