@@ -92,8 +92,8 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 			latChange := float64(deltaY) * metersPerPixel / 111319.9
 			lngChange := -float64(deltaX) * metersPerPixel / (111319.9 * math.Cos(mv.center.Lat*math.Pi/180))
 
-			mv.center.Lat -= latChange
-			mv.center.Lng -= lngChange
+			mv.center.Lat += latChange
+			mv.center.Lng += lngChange
 			mv.calculateVisibleTiles()
 			mv.lastDragPos = pos
 		}
