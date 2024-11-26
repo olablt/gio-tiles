@@ -43,7 +43,7 @@ type MapView struct {
 func NewMapView() *MapView {
 	return &MapView{
 		tileManager: maps.NewTileManager(maps.NewLocalTileProvider()), // Use local provider
-		// tileManager: maps.NewTileManager(maps.NewOSMTileProvider()), // Use OSM provider
+		// tileManager: maps.NewTileManager(maps.NewOSMTileProvider()),           // Use OSM provider
 		center:  maps.LatLng{Lat: initialLatitude, Lng: initialLongitude}, // London
 		zoom:    4,
 		minZoom: 0,
@@ -69,26 +69,6 @@ func (mv *MapView) setZoom(newZoom int) {
 }
 
 func (mv *MapView) updateVisibleTiles() {
-	// // Calculate bounding box in terms of tiles
-	// topLeftTile := maps.LatLngToTile(mv.topLeft(), mv.zoom)
-	// bottomRightTile := maps.LatLngToTile(mv.bottomRight(), mv.zoom)
-
-	// mv.visibleTiles = make([]maps.Tile, 0)
-	// for x := topLeftTile.X; x <= bottomRightTile.X; x++ {
-	// 	for y := topLeftTile.Y; y <= bottomRightTile.Y; y++ {
-	// 		mv.visibleTiles = append(mv.visibleTiles, maps.Tile{
-	// 			X:    x,
-	// 			Y:    y,
-	// 			Zoom: mv.zoom,
-	// 		})
-	// 	}
-	// }
-
-	// // Asynchronously load tiles
-	// for _, tile := range mv.visibleTiles {
-	// 	go mv.tileManager.GetTile(tile)
-	// }
-
 	// Calculate center tile
 	centerTile := maps.LatLngToTile(mv.center, mv.zoom)
 
