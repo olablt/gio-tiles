@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	tileSize           = 256
+	TileSize           = 256
 	earthCircumference = 40075016.686 // meters at equator
 )
 
@@ -41,23 +41,23 @@ func TileToLatLng(tile Tile) LatLng {
 // CalculateWorldCoordinates converts geographical coordinates to world pixel coordinates at given zoom level
 func CalculateWorldCoordinates(ll LatLng, zoom int) (float64, float64) {
 	n := math.Pow(2, float64(zoom))
-	worldX := float64(tileSize) * n * (ll.Lng + 180) / 360
-	worldY := float64(tileSize) * n * (1 - math.Log(math.Tan(ll.Lat*math.Pi/180)+1/math.Cos(ll.Lat*math.Pi/180))/math.Pi) / 2
+	worldX := float64(TileSize) * n * (ll.Lng + 180) / 360
+	worldY := float64(TileSize) * n * (1 - math.Log(math.Tan(ll.Lat*math.Pi/180)+1/math.Cos(ll.Lat*math.Pi/180))/math.Pi) / 2
 	return worldX, worldY
 }
 
 // WorldToLatLng converts world pixel coordinates back to geographical coordinates
 func WorldToLatLng(worldX, worldY float64, zoom int) LatLng {
 	n := math.Pow(2, float64(zoom))
-	lng := (worldX/(float64(tileSize)*n))*360 - 180
-	latRad := math.Pi * (1 - 2*worldY/(float64(tileSize)*n))
+	lng := (worldX/(float64(TileSize)*n))*360 - 180
+	latRad := math.Pi * (1 - 2*worldY/(float64(TileSize)*n))
 	lat := 180 / math.Pi * math.Atan(math.Sinh(latRad))
 	return LatLng{Lat: lat, Lng: lng}
 }
 
 // CalculateMetersPerPixel calculates the meters per pixel at a given latitude and zoom level
 func CalculateMetersPerPixel(latitude float64, zoom int) float64 {
-	return earthCircumference * math.Cos(latitude*math.Pi/180) / (math.Pow(2, float64(zoom)) * tileSize)
+	return earthCircumference * math.Cos(latitude*math.Pi/180) / (math.Pow(2, float64(zoom)) * TileSize)
 }
 
 // ConstrainTile ensures tile coordinates are within valid bounds for the zoom level
@@ -71,8 +71,8 @@ func ConstrainTile(tile Tile) Tile {
 // CalculateVisibleTiles calculates which tiles are visible given a center point and screen size
 func CalculateVisibleTiles(center LatLng, zoom int, screenSize image.Point) []Tile {
 	centerTile := LatLngToTile(center, zoom)
-	tilesX := (screenSize.X / tileSize) + 2 // Add buffer tiles
-	tilesY := (screenSize.Y / tileSize) + 2
+	tilesX := (screenSize.X / TileSize) + 2 // Add buffer tiles
+	tilesY := (screenSize.Y / TileSize) + 2
 
 	startX := centerTile.X - tilesX/2
 	startY := centerTile.Y - tilesY/2

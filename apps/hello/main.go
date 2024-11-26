@@ -22,6 +22,7 @@ import (
 const (
 	initialLatitude  = 51.507222 // London
 	initialLongitude = -0.1275
+	tileSize        = 256
 )
 
 type MapView struct {
@@ -162,8 +163,8 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 		screenCenterY := mv.size.Y >> 1
 
 		// Calculate tile position in pixels
-		tileWorldPx := float64(tile.X * tileSize)
-		tileWorldPy := float64(tile.Y * tileSize)
+		tileWorldPx := float64(tile.X * maps.TileSize)
+		tileWorldPy := float64(tile.Y * maps.TileSize)
 
 		// Calculate final screen position
 		finalX := screenCenterX + int(tileWorldPx-centerWorldPx)
