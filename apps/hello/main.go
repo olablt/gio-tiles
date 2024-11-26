@@ -1,7 +1,7 @@
 package main
 
 import (
-	"gio-maps/maps"
+	"github.com/olablt/gio-maps/maps"
 	"image"
 	"log"
 	"math"
