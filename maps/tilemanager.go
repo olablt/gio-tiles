@@ -15,6 +15,7 @@ type TileManager struct {
 	cache    map[string]image.Image
 	mutex    sync.RWMutex
 	provider TileProvider
+	onLoad   func()
 }
 
 func NewTileManager(provider TileProvider) *TileManager {
@@ -22,6 +23,10 @@ func NewTileManager(provider TileProvider) *TileManager {
 		cache:    make(map[string]image.Image),
 		provider: provider,
 	}
+}
+
+func (tm *TileManager) SetOnLoadCallback(callback func()) {
+	tm.onLoad = callback
 }
 
 // getTileKey returns a unique string key for a tile
@@ -49,5 +54,8 @@ func (tm *TileManager) GetTile(tile Tile) (image.Image, error) {
 	tm.cache[key] = img
 	tm.mutex.Unlock()
 
+	if tm.onLoad != nil {
+		tm.onLoad()
+	}
 	return img, nil
 }

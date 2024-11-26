@@ -40,6 +40,7 @@ type MapView struct {
 	dragging    bool
 	lastDragPos f32.Point
 	released    bool
+	refresh     chan struct{}
 }
 
 func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
@@ -196,14 +197,23 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 	return layout.Dimensions{Size: mv.size}
 }
 
-func NewMapView() *MapView {
-	return &MapView{
-		tileManager: maps.NewTileManager(
-			maps.NewCombinedTileProvider(
-				maps.NewOSMTileProvider(),
-				maps.NewLocalTileProvider(),
-			),
+func NewMapView(refresh chan struct{}) *MapView {
+	tm := maps.NewTileManager(
+		maps.NewCombinedTileProvider(
+			maps.NewOSMTileProvider(),
+			maps.NewLocalTileProvider(),
 		),
+	)
+	tm.SetOnLoadCallback(func() {
+		// Non-blocking send to refresh channel
+		select {
+		case refresh <- struct{}{}:
+		default:
+		}
+	})
+	
+	return &MapView{
+		tileManager: tm,
 		center:  maps.LatLng{Lat: initialLatitude, Lng: initialLongitude}, // London
 		zoom:    4,
 		minZoom: 0,
@@ -232,8 +242,8 @@ func (mv *MapView) updateVisibleTiles() {
 }
 
 func main() {
-	var refresh chan struct{}
-	mv := NewMapView()
+	refresh := make(chan struct{}, 1)
+	mv := NewMapView(refresh)
 	go func() {
 		w := new(app.Window)
 
