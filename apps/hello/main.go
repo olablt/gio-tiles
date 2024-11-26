@@ -139,14 +139,19 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 
 		// Calculate position for this tile relative to center
 		centerTile := maps.LatLngToTile(mv.center, mv.zoom)
-		offsetX := (tile.X - centerTile.X) * 256
-		offsetY := (tile.Y - centerTile.Y) * 256
-
-		// Center the view in the window
+		n := math.Pow(2, float64(mv.zoom))
+		
+		// Get precise pixel coordinates for center
+		centerPxX := float64(centerTile.X)*256 + (mv.center.Lng+180.0)/360.0*n*256
+		centerPxY := float64(centerTile.Y)*256 + (1.0-math.Log(math.Tan(mv.center.Lat*math.Pi/180.0)+(1/math.Cos(mv.center.Lat*math.Pi/180.0)))/math.Pi)/2.0*n*256
+		
+		// Calculate screen position
 		screenCenterX := mv.size.X / 2
 		screenCenterY := mv.size.Y / 2
-		finalX := screenCenterX + offsetX - 128 // 128 is half tile size
-		finalY := screenCenterY + offsetY - 128
+		
+		// Position relative to window center
+		finalX := screenCenterX + int(float64(tile.X*256) - centerPxX)
+		finalY := screenCenterY + int(float64(tile.Y*256) - centerPxY)
 
 		// Create transform stack and apply offset
 		transform := op.Offset(image.Point{X: finalX, Y: finalY}).Push(ops)
