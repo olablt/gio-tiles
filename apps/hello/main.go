@@ -20,6 +20,8 @@ type MapView struct {
 	list         *widget.List
 	size         image.Point
 	visibleTiles []maps.Tile
+	drag         widget.Draggable
+	lastDragPos  image.Point
 }
 
 func NewMapView() *MapView {
@@ -71,6 +73,36 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 		mv.size = gtx.Constraints.Max
 		mv.calculateVisibleTiles()
 	}
+
+	// Handle drag events
+	for _, e := range mv.drag.Events(gtx.Metric, gtx, gesture.Both) {
+		switch e.Type {
+		case pointer.Drag:
+			// Calculate the change in position
+			delta := e.Position.Sub(mv.lastDragPos)
+			mv.lastDragPos = e.Position
+
+			// Convert screen movement to geographical coordinates
+			// The conversion factor depends on the zoom level
+			// At zoom level z, one pixel represents roughly 156543.03392 * cos(lat) / 2^z meters
+			metersPerPixel := 156543.03392 * math.Cos(mv.center.Lat*math.Pi/180) / math.Pow(2, float64(mv.zoom))
+			
+			// Convert pixel movement to degrees
+			// 111319.9 is the number of meters per degree at the equator
+			latChange := -delta.Y * metersPerPixel / 111319.9
+			lngChange := -delta.X * metersPerPixel / (111319.9 * math.Cos(mv.center.Lat*math.Pi/180))
+
+			mv.center.Lat += latChange
+			mv.center.Lng += lngChange
+			mv.calculateVisibleTiles()
+
+		case pointer.Press:
+			mv.lastDragPos = e.Position
+		}
+	}
+
+	// Add the drag input area
+	mv.drag.Add(gtx.Ops)
 
 	ops := gtx.Ops
 
