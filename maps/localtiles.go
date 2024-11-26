@@ -20,13 +20,18 @@ func (p *LocalTileProvider) GetTile(tile Tile) (image.Image, error) {
     // Create a new 256x256 RGBA image (standard tile size)
     img := image.NewRGBA(image.Rect(0, 0, 256, 256))
 
-    // Fill with light gray background
-    draw.Draw(img, img.Bounds(), &image.Uniform{color.RGBA{240, 240, 240, 255}}, image.Point{}, draw.Src)
+    // Fill with light blue background
+    draw.Draw(img, img.Bounds(), &image.Uniform{color.RGBA{200, 220, 255, 255}}, image.Point{}, draw.Src)
 
     // Create the text to draw
     text := fmt.Sprintf("%d/%d/%d", tile.Zoom, tile.X, tile.Y)
 
-    // Set up the font drawer
+    // Draw text background
+    textBgColor := color.RGBA{255, 255, 255, 220}
+    textBgRect := image.Rect(96, 116, 160, 140) // Centered rectangle for text background
+    draw.Draw(img, textBgRect, &image.Uniform{textBgColor}, image.Point{}, draw.Over)
+
+    // Set up the font drawer with black text
     d := &font.Drawer{
         Dst:  img,
         Src:  image.NewUniform(color.RGBA{0, 0, 0, 255}),
