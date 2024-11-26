@@ -22,7 +22,7 @@ type MapView struct {
 func NewMapView() *MapView {
 	return &MapView{
 		tileManager: maps.NewTileManager(maps.NewLocalTileProvider()), // Use local provider
-		center:      maps.LatLng{Lat: 51.507222, Lng: -0.1275}, // London
+		center:      maps.LatLng{Lat: 51.507222, Lng: -0.1275},        // London
 		zoom:        12,
 		list: &widget.List{
 			List: layout.List{
@@ -61,10 +61,6 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 
 func main() {
 	go func() {
-		// w := app.NewWindow(
-		// 	app.Title("Map Viewer"),
-		// 	app.Size(unit.Dp(800), unit.Dp(600)),
-		// )
 		w := new(app.Window)
 
 		mv := NewMapView()
