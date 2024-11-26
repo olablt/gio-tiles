@@ -81,11 +81,6 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 				mouseWorldX := worldX + mouseOffsetX
 				mouseWorldY := worldY + mouseOffsetY
 
-				// Convert to geographical coordinates
-				mouseLng := (mouseWorldX/(float64(tileSize)*n))*360 - 180
-				mouseLatRad := math.Pi * (1 - 2*mouseWorldY/(float64(tileSize)*n))
-				mouseLat := 180 / math.Pi * math.Atan(math.Sinh(mouseLatRad))
-
 				// Store old zoom level
 				oldZoom := mv.zoom
 
