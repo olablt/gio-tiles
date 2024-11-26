@@ -1,7 +1,6 @@
 package maps
 
 import (
-	"fmt"
 	"math"
 )
 
@@ -31,10 +30,4 @@ func TileToLatLng(tile Tile) LatLng {
 	lat_rad := math.Atan(math.Sinh(math.Pi * (1 - 2*float64(tile.Y)/n)))
 	lat_deg := lat_rad * 180.0 / math.Pi
 	return LatLng{Lat: lat_deg, Lng: lon_deg}
-}
-
-// GetTileURL returns the URL for downloading the map tile
-func GetTileURL(tile Tile) string {
-	return fmt.Sprintf("https://tile.openstreetmap.org/%d/%d/%d.png",
-		tile.Zoom, tile.X, tile.Y)
 }
