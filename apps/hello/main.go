@@ -22,6 +22,8 @@ type MapView struct {
 	tileManager  *maps.TileManager
 	center       maps.LatLng
 	zoom         int
+	minZoom      int
+	maxZoom      int
 	list         *widget.List
 	size         image.Point
 	visibleTiles []maps.Tile
@@ -34,14 +36,28 @@ func NewMapView() *MapView {
 	return &MapView{
 		tileManager: maps.NewTileManager(maps.NewLocalTileProvider()), // Use local provider
 		// tileManager: maps.NewTileManager(maps.NewOSMTileProvider()), // Use OSM provider
-		center: maps.LatLng{Lat: 51.507222, Lng: -0.1275}, // London
-		zoom:   4,
+		center:  maps.LatLng{Lat: 51.507222, Lng: -0.1275}, // London
+		zoom:    4,
+		minZoom: 0,
+		maxZoom: 19,
 		list: &widget.List{
 			List: layout.List{
 				Axis: layout.Vertical,
 			},
 		},
 	}
+}
+
+func (mv *MapView) constrainTile(tile maps.Tile) maps.Tile {
+	maxTile := int(math.Pow(2, float64(tile.Zoom))) - 1
+	tile.X = max(0, min(tile.X, maxTile))
+	tile.Y = max(0, min(tile.Y, maxTile))
+	return tile
+}
+
+func (mv *MapView) setZoom(newZoom int) {
+	mv.zoom = max(mv.minZoom, min(newZoom, mv.maxZoom))
+	mv.updateVisibleTiles()
 }
 
 func (mv *MapView) updateVisibleTiles() {
@@ -79,11 +95,12 @@ func (mv *MapView) updateVisibleTiles() {
 
 	for x := startX; x < startX+tilesX; x++ {
 		for y := startY; y < startY+tilesY; y++ {
-			mv.visibleTiles = append(mv.visibleTiles, maps.Tile{
+			tile := mv.constrainTile(maps.Tile{
 				X:    x,
 				Y:    y,
 				Zoom: mv.zoom,
 			})
+			mv.visibleTiles = append(mv.visibleTiles, tile)
 		}
 	}
 
