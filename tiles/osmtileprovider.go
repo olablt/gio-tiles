@@ -1,4 +1,4 @@
-package maps
+package tiles
 
 import (
 	"fmt"
@@ -52,7 +52,7 @@ func (p *OSMTileProvider) GetTile(tile Tile) (image.Image, error) {
 		log.Printf("Error decoding tile image %v: %v", tile, err)
 		return nil, err
 	}
-	
+
 	log.Printf("Successfully loaded OSM tile: %v", tile)
 	return img, nil
 }
