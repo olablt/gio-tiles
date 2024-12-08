@@ -140,7 +140,7 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 
 	// Draw all visible tiles
 	for _, tile := range mv.visibleTiles {
-		img, err := mv.TileManager.GetTile(tile)
+		imageOp, err := mv.TileManager.GetTile(tile)
 		if err != nil {
 			log.Printf("Error loading tile %v: %v", tile, err)
 			continue
@@ -165,7 +165,6 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 		transform := op.Offset(image.Point{X: finalX, Y: finalY}).Push(gtx.Ops)
 
 		// Draw the tile
-		imageOp := paint.NewImageOp(img)
 		imageOp.Add(gtx.Ops)
 		paint.PaintOp{}.Add(gtx.Ops)
 

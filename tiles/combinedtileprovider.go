@@ -1,8 +1,9 @@
 package tiles
 
 import (
-	"image"
 	"sync"
+
+	"gioui.org/op/paint"
 )
 
 type CombinedTileProvider struct {
@@ -20,7 +21,7 @@ func NewCombinedTileProvider(primary, fallback TileProvider) *CombinedTileProvid
 	}
 }
 
-func (p *CombinedTileProvider) GetTile(tile Tile) (image.Image, error) {
+func (p *CombinedTileProvider) GetTile(tile Tile) (*paint.ImageOp, error) {
 	key := getTileKey(tile)
 
 	// Check if we're already loading this tile
