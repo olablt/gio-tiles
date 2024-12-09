@@ -1,11 +1,13 @@
 package tiles
 
 import (
+	"context"
 	"fmt"
 	"image"
 	_ "image/png"
 
 	"gioui.org/op/paint"
+	"github.com/olablt/gio-tiles/tiles/worker"
 )
 
 type TileProvider interface {
@@ -23,7 +25,7 @@ type TileManager struct {
 
 func NewTileManager(provider TileProvider, cacheType CacheType) *TileManager {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	var cache Cache
 	switch cacheType {
 	case CacheImageOp:
@@ -87,7 +89,7 @@ func (tm *TileManager) GetTile(tile Tile) (image.Image, error) {
 			if err != nil {
 				return err
 			}
-			
+
 			switch tm.cache.GetType() {
 			case CacheImage:
 				tm.cache.Set(key, img)

@@ -1,6 +1,7 @@
 package tiles
 
 import (
+	"fmt"
 	"image"
 	"sync"
 )
