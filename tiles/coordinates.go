@@ -72,8 +72,12 @@ func ConstrainTile(tile Tile) Tile {
 // CalculateVisibleTiles calculates which tiles are visible given a center point and screen size
 func CalculateVisibleTiles(center LatLng, zoom int, screenSize image.Point) []Tile {
 	centerTile := LatLngToTile(center, zoom)
-	tilesX := (screenSize.X / TileSize) + 2 // Add buffer tiles
-	tilesY := (screenSize.Y / TileSize) + 2
+	// Calculate additional buffer based on zoom scale
+	zoomScale := math.Pow(2, zoom-math.Floor(float64(zoom)))
+	bufferTiles := int(math.Ceil(zoomScale)) + 1
+
+	tilesX := (screenSize.X / TileSize) + bufferTiles*2 // Add scaled buffer tiles
+	tilesY := (screenSize.Y / TileSize) + bufferTiles*2
 
 	startX := centerTile.X - tilesX/2
 	startY := centerTile.Y - tilesY/2
