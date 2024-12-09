@@ -60,56 +60,52 @@ func GetTileKey(tile Tile) string {
 }
 
 func (tm *TileManager) GetTile(tile Tile) (image.Image, error) {
-	key := GetTileKey(tile)
+    key := GetTileKey(tile)
 
-	if cached, exists := tm.cache.Get(key); exists {
-		switch tm.cache.GetType() {
-		case CacheImage:
-			if img, ok := cached.(image.Image); ok {
-				return img, nil
-			}
-		case CacheImageOp:
-			if _, ok := cached.(paint.ImageOp); ok {
-				return tm.provider.GetTile(tile)
-			}
-		}
-	}
+    // First check if we already have the OSM tile cached
+    if cached, exists := tm.cache.Get(key); exists {
+        switch tm.cache.GetType() {
+        case CacheImage:
+            if img, ok := cached.(image.Image); ok {
+                return img, nil
+            }
+        case CacheImageOp:
+            if imgOp, ok := cached.(paint.ImageOp); ok {
+                // We have the OSM tile cached
+                return tm.provider.GetTile(tile)
+            }
+        }
+    }
 
-	taskCtx, taskCancel := context.WithCancel(tm.ctx)
-	defer taskCancel()
+    // Start async loading of OSM tile if not already loading
+    tm.pool.Submit(worker.Task{
+        Ctx: tm.ctx,
+        Work: func() error {
+            img, err := tm.provider.GetTile(tile)
+            if err != nil {
+                return err
+            }
 
-	var img image.Image
-	var err error
-	done := make(chan struct{})
+            switch tm.cache.GetType() {
+            case CacheImage:
+                tm.cache.Set(key, img)
+            case CacheImageOp:
+                tm.cache.Set(key, paint.NewImageOp(img))
+            }
 
-	tm.pool.Submit(worker.Task{
-		Ctx: taskCtx,
-		Work: func() error {
-			img, err = tm.provider.GetTile(tile)
-			if err != nil {
-				return err
-			}
+            if tm.onLoad != nil {
+                tm.onLoad()
+            }
+            return nil
+        },
+        Priority: tile.Zoom,
+    })
 
-			switch tm.cache.GetType() {
-			case CacheImage:
-				tm.cache.Set(key, img)
-			case CacheImageOp:
-				tm.cache.Set(key, paint.NewImageOp(img))
-			}
+    // Return local tile immediately while OSM loads
+    if localProvider, ok := tm.provider.(*CombinedTileProvider); ok {
+        return localProvider.fallback.GetTile(tile)
+    }
 
-			if tm.onLoad != nil {
-				tm.onLoad()
-			}
-			close(done)
-			return nil
-		},
-		Priority: tile.Zoom,
-	})
-
-	select {
-	case <-done:
-		return img, err
-	case <-taskCtx.Done():
-		return nil, context.Canceled
-	}
+    // Fallback if not using CombinedTileProvider
+    return tm.provider.GetTile(tile)
 }
