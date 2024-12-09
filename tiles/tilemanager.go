@@ -16,9 +16,14 @@ type TileManager struct {
 	cache    Cache
 	provider TileProvider
 	onLoad   func()
+	pool     *worker.Pool
+	ctx      context.Context
+	cancel   context.CancelFunc
 }
 
 func NewTileManager(provider TileProvider, cacheType CacheType) *TileManager {
+	ctx, cancel := context.WithCancel(context.Background())
+	
 	var cache Cache
 	switch cacheType {
 	case CacheImageOp:
@@ -30,6 +35,9 @@ func NewTileManager(provider TileProvider, cacheType CacheType) *TileManager {
 	return &TileManager{
 		cache:    cache,
 		provider: provider,
+		pool:     worker.NewPool(4),
+		ctx:      ctx,
+		cancel:   cancel,
 	}
 }
 
@@ -52,7 +60,6 @@ func GetTileKey(tile Tile) string {
 func (tm *TileManager) GetTile(tile Tile) (image.Image, error) {
 	key := GetTileKey(tile)
 
-	// Check cache first
 	if cached, exists := tm.cache.Get(key); exists {
 		switch tm.cache.GetType() {
 		case CacheImage:
@@ -60,30 +67,47 @@ func (tm *TileManager) GetTile(tile Tile) (image.Image, error) {
 				return img, nil
 			}
 		case CacheImageOp:
-			// For ImageOp cache we need to return the original image
 			if _, ok := cached.(paint.ImageOp); ok {
-				// Get fresh image from provider since we can't extract it from ImageOp
 				return tm.provider.GetTile(tile)
 			}
 		}
 	}
 
-	// If not in cache, load from provider
-	img, err := tm.provider.GetTile(tile)
-	if err != nil {
-		return nil, err
-	}
+	taskCtx, taskCancel := context.WithCancel(tm.ctx)
+	defer taskCancel()
 
-	// Cache according to type
-	switch tm.cache.GetType() {
-	case CacheImage:
-		tm.cache.Set(key, img)
-	case CacheImageOp:
-		tm.cache.Set(key, paint.NewImageOp(img))
-	}
+	var img image.Image
+	var err error
+	done := make(chan struct{})
 
-	if tm.onLoad != nil {
-		tm.onLoad()
+	tm.pool.Submit(worker.Task{
+		Ctx: taskCtx,
+		Work: func() error {
+			img, err = tm.provider.GetTile(tile)
+			if err != nil {
+				return err
+			}
+			
+			switch tm.cache.GetType() {
+			case CacheImage:
+				tm.cache.Set(key, img)
+			case CacheImageOp:
+				tm.cache.Set(key, paint.NewImageOp(img))
+			}
+
+			if tm.onLoad != nil {
+				tm.onLoad()
+			}
+			close(done)
+			return nil
+		},
+		Priority: tile.Zoom,
+	})
+
+	select {
+	case <-done:
+		return img, err
+	case <-taskCtx.Done():
+		return nil, context.Canceled
 	}
-	return img, nil
 }

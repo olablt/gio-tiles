@@ -277,9 +277,13 @@ func New(refresh chan struct{}) *MapView {
 }
 
 func (mv *MapView) updateVisibleTiles() {
+	if mv.cancelCurrent != nil {
+		mv.cancelCurrent()
+	}
+	mv.currentCtx, mv.cancelCurrent = context.WithCancel(context.Background())
+
 	mv.metersPerPixel = tiles.CalculateMetersPerPixel(mv.center.Lat, mv.targetZoom)
 
-	// If target zoom changed, store current tiles as previous
 	newTargetZoom := int(math.Round(mv.zoom))
 	if newTargetZoom != mv.targetZoom {
 		mv.prevZoom = mv.targetZoom
@@ -289,8 +293,11 @@ func (mv *MapView) updateVisibleTiles() {
 
 	mv.visibleTiles = tiles.CalculateVisibleTiles(mv.center, mv.targetZoom, mv.size)
 
-	// Start loading tiles asynchronously
+	ctx := mv.currentCtx
 	for _, tile := range mv.visibleTiles {
+		if ctx.Err() != nil {
+			return
+		}
 		go mv.tileManager.GetTile(tile)
 	}
 }
