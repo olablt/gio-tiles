@@ -57,8 +57,10 @@ func (tm *TileManager) GetTile(tile Tile) (image.Image, error) {
 				return img, nil
 			}
 		case CacheImageOp:
-			if imgOp, ok := cached.(paint.ImageOp); ok {
-				return imgOp.Image(), nil
+			// For ImageOp cache we need to return the original image
+			if _, ok := cached.(paint.ImageOp); ok {
+				// Get fresh image from provider since we can't extract it from ImageOp
+				return tm.provider.GetTile(tile)
 			}
 		}
 	}
