@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"image"
 	_ "image/png"
+
+	"gioui.org/op/paint"
 )
 
 type TileProvider interface {
