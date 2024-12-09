@@ -189,7 +189,7 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 		if finalX+tiles.TileSize >= 0 && finalX <= mv.size.X &&
 			finalY+tiles.TileSize >= 0 && finalY <= mv.size.Y {
 			transformStack := op.Offset(image.Point{X: finalX, Y: finalY}).Push(gtx.Ops)
-			scaleStack := op.Scale(f32.Point{X: float32(baseScale), Y: float32(baseScale)}).Push(gtx.Ops)
+			scaleStack := op.Affine(f32.Affine2D{}.Scale(f32.Point{}, f32.Point{X: float32(baseScale), Y: float32(baseScale)})).Push(gtx.Ops)
 			imageOp.Add(gtx.Ops)
 			paint.PaintOp{}.Add(gtx.Ops)
 			scaleStack.Pop()
