@@ -158,7 +158,7 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 	for _, tile := range mv.visibleTiles {
 		var imageOp paint.ImageOp
 		key := tiles.GetTileKey(tile)
-		
+
 		// Try to get from cache first
 		if cached, ok := mv.tileManager.GetCache().Get(key); ok {
 			if imgOp, ok := cached.(paint.ImageOp); ok {
