@@ -1,22 +1,19 @@
-package main
+package mapview
 
 import (
 	"image"
 	"log"
 	"math"
-	"os"
 
 	"gioui.org/f32"
 	"gioui.org/io/event"
 	"gioui.org/io/pointer"
-	"github.com/olablt/gio-tiles/tiles"
-
-	"gioui.org/app"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/widget"
+	"github.com/olablt/gio-tiles/tiles"
 )
 
 const (
@@ -62,8 +59,6 @@ func (mv *MapView) Update(gtx layout.Context) {
 		}
 
 		if x, ok := ev.(pointer.Event); ok {
-			// log
-			// log.Println("pointer.Event", x)
 			switch x.Kind {
 			case pointer.Press:
 				mv.clickPos = x.Position
@@ -82,9 +77,7 @@ func (mv *MapView) Update(gtx layout.Context) {
 				mouseWorldY := worldY + mouseOffsetY
 
 				// Update zoom level smoothly
-				// zoomDelta := float64(x.Scroll.Y) * -0.125 // Smaller increment for smoother zoom
 				zoomDelta := float64(x.Scroll.Y) * -0.015 // Smaller increment for smoother zoom
-				// zoomDelta := float64(x.Scroll.Y) * -0.005 // Smaller increment for smoother zoom
 				newZoom := mv.zoom + zoomDelta
 				newZoom = math.Max(float64(mv.minZoom), math.Min(newZoom, float64(mv.maxZoom)))
 
@@ -164,8 +157,6 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 
 	// Confine the area of interest to a gtx Max
 	defer clip.Rect{Max: gtx.Constraints.Max}.Push(gtx.Ops).Pop()
-	// mv.drag.Add(gtx.Ops)
-	// Declare `tag` as being one of the targets.
 	event.Op(gtx.Ops, tag)
 
 	// Draw previous zoom level tiles first if we're between zoom levels
@@ -252,13 +243,12 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 	return layout.Dimensions{Size: mv.size}
 }
 
-func NewMapView(refresh chan struct{}) *MapView {
+func New(refresh chan struct{}) *MapView {
 	tm := tiles.NewTileManager(
 		tiles.NewCombinedTileProvider(
 			tiles.NewOSMTileProvider(),
 			tiles.NewLocalTileProvider(),
 		),
-		// tiles.NewLocalTileProvider(),
 		tiles.CacheImageOp,
 	)
 	tm.SetOnLoadCallback(func() {
@@ -303,30 +293,4 @@ func (mv *MapView) updateVisibleTiles() {
 	for _, tile := range mv.visibleTiles {
 		go mv.tileManager.GetTile(tile)
 	}
-}
-
-func main() {
-	refresh := make(chan struct{}, 1)
-	mv := mapview.New(refresh)
-	go func() {
-		w := new(app.Window)
-
-		var ops op.Ops
-		go func() {
-			for range refresh {
-				w.Invalidate()
-			}
-		}()
-		for {
-			switch e := w.Event().(type) {
-			case app.DestroyEvent:
-				os.Exit(0)
-			case app.FrameEvent:
-				gtx := app.NewContext(&ops, e)
-				mv.Layout(gtx)
-				e.Frame(gtx.Ops)
-			}
-		}
-	}()
-	app.Main()
 }
