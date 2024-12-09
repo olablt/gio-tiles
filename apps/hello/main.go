@@ -83,7 +83,8 @@ func (mv *MapView) Update(gtx layout.Context) {
 
 				// Update zoom level smoothly
 				// zoomDelta := float64(x.Scroll.Y) * -0.125 // Smaller increment for smoother zoom
-				zoomDelta := float64(x.Scroll.Y) * -0.005 // Smaller increment for smoother zoom
+				zoomDelta := float64(x.Scroll.Y) * -0.015 // Smaller increment for smoother zoom
+				// zoomDelta := float64(x.Scroll.Y) * -0.005 // Smaller increment for smoother zoom
 				newZoom := mv.zoom + zoomDelta
 				newZoom = math.Max(float64(mv.minZoom), math.Min(newZoom, float64(mv.maxZoom)))
 
@@ -224,7 +225,7 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 		screenCenterY := float64(mv.size.Y >> 1)
 		tileWorldPx := float64(tile.X * tiles.TileSize)
 		tileWorldPy := float64(tile.Y * tiles.TileSize)
-		
+
 		// Apply zoom scaling to the position difference
 		scale := math.Pow(2, mv.zoom-float64(mv.targetZoom))
 		finalX := int(screenCenterX + (tileWorldPx-centerWorldPx)*scale)
@@ -248,14 +249,15 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 
 func NewMapView(refresh chan struct{}) *MapView {
 	tm := tiles.NewTileManager(
-		// tiles.NewCombinedTileProvider(
-		// 	tiles.NewOSMTileProvider(),
-		// 	tiles.NewLocalTileProvider(),
-		// ),
-		tiles.NewLocalTileProvider(),
+		tiles.NewCombinedTileProvider(
+			tiles.NewOSMTileProvider(),
+			tiles.NewLocalTileProvider(),
+		),
+		// tiles.NewLocalTileProvider(),
 		tiles.CacheImageOp,
 	)
 	tm.SetOnLoadCallback(func() {
+		log.Println("onLoad")
 		// Non-blocking send to refresh channel
 		select {
 		case refresh <- struct{}{}:
