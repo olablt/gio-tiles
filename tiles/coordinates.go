@@ -41,8 +41,9 @@ func TileToLatLng(tile Tile) LatLng {
 // CalculateWorldCoordinates converts geographical coordinates to world pixel coordinates at given zoom level
 func CalculateWorldCoordinates(ll LatLng, zoom float64) (float64, float64) {
 	n := math.Pow(2, zoom)
+	lat_rad := ll.Lat * math.Pi / 180.0
 	worldX := float64(TileSize) * n * (ll.Lng + 180) / 360
-	worldY := float64(TileSize) * n * (1 - math.Log(math.Tan(ll.Lat*math.Pi/180)+1/math.Cos(ll.Lat*math.Pi/180))/math.Pi) / 2
+	worldY := float64(TileSize) * n * (1 - math.Log(math.Tan(lat_rad)+1/math.Cos(lat_rad))/math.Pi) / 2
 	return worldX, worldY
 }
 

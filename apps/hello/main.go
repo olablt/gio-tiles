@@ -218,18 +218,22 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 			mv.tileManager.GetCache().Set(key, imageOp)
 		}
 
-		// Calculate positions
-		centerWorldPx, centerWorldPy := tiles.CalculateWorldCoordinates(mv.center, mv.zoom)
-		screenCenterX := mv.size.X >> 1
-		screenCenterY := mv.size.Y >> 1
+		// Calculate positions with fractional precision
+		centerWorldPx, centerWorldPy := tiles.CalculateWorldCoordinates(mv.center, float64(mv.targetZoom))
+		screenCenterX := float64(mv.size.X >> 1)
+		screenCenterY := float64(mv.size.Y >> 1)
 		tileWorldPx := float64(tile.X * tiles.TileSize)
 		tileWorldPy := float64(tile.Y * tiles.TileSize)
-		finalX := screenCenterX + int(tileWorldPx-centerWorldPx)
-		finalY := screenCenterY + int(tileWorldPy-centerWorldPy)
+		
+		// Apply zoom scaling to the position difference
+		scale := math.Pow(2, mv.zoom-float64(mv.targetZoom))
+		finalX := int(screenCenterX + (tileWorldPx-centerWorldPx)*scale)
+		finalY := int(screenCenterY + (tileWorldPy-centerWorldPy)*scale)
 
 		// Draw only if tile is visible
-		if finalX+tiles.TileSize >= 0 && finalX <= mv.size.X &&
-			finalY+tiles.TileSize >= 0 && finalY <= mv.size.Y {
+		scaledTileSize := int(float64(tiles.TileSize) * baseScale)
+		if finalX+scaledTileSize >= 0 && finalX <= mv.size.X &&
+			finalY+scaledTileSize >= 0 && finalY <= mv.size.Y {
 			transformStack := op.Offset(image.Point{X: finalX, Y: finalY}).Push(gtx.Ops)
 			scaleStack := op.Affine(f32.Affine2D{}.Scale(f32.Point{}, f32.Point{X: float32(baseScale), Y: float32(baseScale)})).Push(gtx.Ops)
 			imageOp.Add(gtx.Ops)
