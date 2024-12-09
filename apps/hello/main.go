@@ -28,13 +28,14 @@ const (
 type MapView struct {
 	tileManager    *tiles.TileManager
 	center         tiles.LatLng
-	zoom           int
+	zoom           float64 // Changed to float64 for smooth zooming
+	targetZoom     int     // The nearest integer zoom level for tile loading
 	minZoom        int
 	maxZoom        int
 	list           *widget.List
 	size           image.Point
 	visibleTiles   []tiles.Tile
-	metersPerPixel float64 // cached calculation
+	metersPerPixel float64
 	//
 	clickPos    f32.Point
 	dragging    bool
@@ -80,17 +81,17 @@ func (mv *MapView) Update(gtx layout.Context) {
 				// Store old zoom level
 				oldZoom := mv.zoom
 
-				// Update zoom level
-				if x.Scroll.Y < 0 {
-					mv.setZoom(mv.zoom + 1)
-				} else if x.Scroll.Y > 0 {
-					mv.setZoom(mv.zoom - 1)
-				}
+				// Update zoom level smoothly
+				zoomDelta := float64(x.Scroll.Y) * -0.125 // Smaller increment for smoother zoom
+				newZoom := mv.zoom + zoomDelta
+				newZoom = math.Max(float64(mv.minZoom), math.Min(newZoom, float64(mv.maxZoom)))
 
 				// If zoom changed, adjust center to keep mouse position fixed
-				if oldZoom != mv.zoom {
+				if newZoom != mv.zoom {
 					// Calculate the new world coordinates after zoom
-					zoomFactor := math.Pow(2, float64(mv.zoom-oldZoom))
+					zoomFactor := math.Pow(2, newZoom-mv.zoom)
+					mv.zoom = newZoom
+					mv.targetZoom = int(math.Round(mv.zoom))
 					newWorldX := mouseWorldX * zoomFactor
 					newWorldY := mouseWorldY * zoomFactor
 
@@ -146,6 +147,9 @@ func (mv *MapView) Update(gtx layout.Context) {
 func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 	mv.Update(gtx)
 
+	// Calculate scale factor for current fractional zoom
+	baseScale := math.Pow(2, mv.zoom-float64(mv.targetZoom))
+
 	tag := mv
 
 	// Confine the area of interest to a gtx Max
@@ -187,10 +191,12 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 		// Draw only if tile is visible
 		if finalX+tiles.TileSize >= 0 && finalX <= mv.size.X &&
 			finalY+tiles.TileSize >= 0 && finalY <= mv.size.Y {
-			transform := op.Offset(image.Point{X: finalX, Y: finalY}).Push(gtx.Ops)
+			transformStack := op.Offset(image.Point{X: finalX, Y: finalY}).Push(gtx.Ops)
+			scaleStack := op.Scale(f32.Point{X: float32(baseScale), Y: float32(baseScale)}).Push(gtx.Ops)
 			imageOp.Add(gtx.Ops)
 			paint.PaintOp{}.Add(gtx.Ops)
-			transform.Pop()
+			scaleStack.Pop()
+			transformStack.Pop()
 		}
 	}
 
@@ -216,7 +222,8 @@ func NewMapView(refresh chan struct{}) *MapView {
 	return &MapView{
 		tileManager: tm,
 		center:      tiles.LatLng{Lat: initialLatitude, Lng: initialLongitude}, // London
-		zoom:        4,
+		zoom:        4.0,
+		targetZoom:  4,
 		minZoom:     0,
 		maxZoom:     19,
 		list: &widget.List{
@@ -227,14 +234,9 @@ func NewMapView(refresh chan struct{}) *MapView {
 	}
 }
 
-func (mv *MapView) setZoom(newZoom int) {
-	mv.zoom = max(mv.minZoom, min(newZoom, mv.maxZoom))
-	mv.updateVisibleTiles()
-}
-
 func (mv *MapView) updateVisibleTiles() {
-	mv.metersPerPixel = tiles.CalculateMetersPerPixel(mv.center.Lat, mv.zoom)
-	mv.visibleTiles = tiles.CalculateVisibleTiles(mv.center, mv.zoom, mv.size)
+	mv.metersPerPixel = tiles.CalculateMetersPerPixel(mv.center.Lat, mv.targetZoom)
+	mv.visibleTiles = tiles.CalculateVisibleTiles(mv.center, mv.targetZoom, mv.size)
 
 	// Start loading tiles asynchronously
 	for _, tile := range mv.visibleTiles {
