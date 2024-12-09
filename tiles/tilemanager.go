@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"image"
 	_ "image/png"
-	"sync"
 )
 
 type TileProvider interface {
@@ -25,7 +24,7 @@ func NewTileManager(provider TileProvider, cacheType CacheType) *TileManager {
 	default:
 		cache = NewImageCache()
 	}
-	
+
 	return &TileManager{
 		cache:    cache,
 		provider: provider,
