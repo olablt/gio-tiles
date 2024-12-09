@@ -78,9 +78,6 @@ func (mv *MapView) Update(gtx layout.Context) {
 				mouseWorldX := worldX + mouseOffsetX
 				mouseWorldY := worldY + mouseOffsetY
 
-				// Store old zoom level
-				oldZoom := mv.zoom
-
 				// Update zoom level smoothly
 				zoomDelta := float64(x.Scroll.Y) * -0.125 // Smaller increment for smoother zoom
 				newZoom := mv.zoom + zoomDelta
