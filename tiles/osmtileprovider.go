@@ -21,18 +21,18 @@ func NewOSMTileProvider() *OSMTileProvider {
 }
 
 func (p *OSMTileProvider) GetTile(tile Tile) (image.Image, error) {
-    url := p.GetTileURL(tile)
-    log.Printf("OSM: Requesting tile z=%d x=%d y=%d from %s", tile.Zoom, tile.X, tile.Y, url)
-    
-    // Create request with timeout
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
-    
-    req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-    if err != nil {
-        log.Printf("Error creating request for tile %v: %v", tile, err)
-        return nil, err
-    }
+	url := p.GetTileURL(tile)
+	log.Printf("OSM: Requesting tile z=%d x=%d y=%d from %s", tile.Zoom, tile.X, tile.Y, url)
+
+	// Create request with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		log.Printf("Error creating request for tile %v: %v", tile, err)
+		return nil, err
+	}
 
 	// Add browser-like headers
 	req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0")
