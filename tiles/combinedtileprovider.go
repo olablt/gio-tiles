@@ -39,10 +39,20 @@ func (p *CombinedTileProvider) GetTile(tile Tile) (image.Image, error) {
 	}
 	p.cacheMu.RUnlock()
 
-	// Get fallback tile
+	// Try to get primary tile first
+	primaryImg, err := p.primary.GetTile(tile)
+	if err == nil {
+		// Cache the successfully loaded primary tile
+		p.cacheMu.Lock()
+		p.cache[key] = primaryImg
+		p.cacheMu.Unlock()
+		return primaryImg, nil
+	}
+
+	// If primary fails, get fallback tile
 	fallbackImg, err := p.fallback.GetTile(tile)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("both primary and fallback providers failed: %v", err)
 	}
 
 	// Check if we're already loading this tile

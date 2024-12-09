@@ -20,7 +20,7 @@ func NewOSMTileProvider() *OSMTileProvider {
 
 func (p *OSMTileProvider) GetTile(tile Tile) (image.Image, error) {
 	url := p.GetTileURL(tile)
-	log.Printf("Requesting OSM tile: %s", url)
+	log.Printf("OSM: Requesting tile z=%d x=%d y=%d from %s", tile.Zoom, tile.X, tile.Y, url)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -53,7 +53,7 @@ func (p *OSMTileProvider) GetTile(tile Tile) (image.Image, error) {
 		return nil, err
 	}
 
-	// log.Printf("Successfully loaded OSM tile: %v", tile)
+	log.Printf("OSM: Successfully loaded tile z=%d x=%d y=%d", tile.Zoom, tile.X, tile.Y)
 	return img, nil
 }
 
