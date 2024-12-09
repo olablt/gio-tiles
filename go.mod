@@ -1,4 +1,4 @@
-module github.com/olablt/gio-maps
+module github.com/olablt/gio-tiles
 
 go 1.22.1
 

@@ -6,11 +6,10 @@ import (
 	"math"
 	"os"
 
-	"github.com/olablt/gio-maps/maps"
-
 	"gioui.org/f32"
 	"gioui.org/io/event"
 	"gioui.org/io/pointer"
+	"github.com/olablt/gio-tiles/tiles"
 
 	"gioui.org/app"
 	"gioui.org/layout"
@@ -27,14 +26,14 @@ const (
 )
 
 type MapView struct {
-	tileManager    *maps.TileManager
-	center         maps.LatLng
+	tileManager    *tiles.TileManager
+	center         tiles.LatLng
 	zoom           int
 	minZoom        int
 	maxZoom        int
 	list           *widget.List
 	size           image.Point
-	visibleTiles   []maps.Tile
+	visibleTiles   []tiles.Tile
 	metersPerPixel float64 // cached calculation
 	//
 	clickPos    f32.Point
@@ -74,7 +73,7 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 				mouseOffsetY := float64(x.Position.Y) - screenCenterY
 
 				// Convert screen coordinates to world coordinates at current zoom
-				worldX, worldY := maps.CalculateWorldCoordinates(mv.center, mv.zoom)
+				worldX, worldY := tiles.CalculateWorldCoordinates(mv.center, mv.zoom)
 				mouseWorldX := worldX + mouseOffsetX
 				mouseWorldY := worldY + mouseOffsetY
 
@@ -100,7 +99,7 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 					newWorldCenterY := newWorldY - mouseOffsetY
 
 					// Convert back to geographical coordinates
-					mv.center = maps.WorldToLatLng(newWorldCenterX, newWorldCenterY, mv.zoom)
+					mv.center = tiles.WorldToLatLng(newWorldCenterX, newWorldCenterY, mv.zoom)
 
 					mv.updateVisibleTiles()
 				}
@@ -158,15 +157,15 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 		}
 
 		// Calculate center position in pixels at current zoom level
-		centerWorldPx, centerWorldPy := maps.CalculateWorldCoordinates(mv.center, mv.zoom)
+		centerWorldPx, centerWorldPy := tiles.CalculateWorldCoordinates(mv.center, mv.zoom)
 
 		// Calculate screen center
 		screenCenterX := mv.size.X >> 1
 		screenCenterY := mv.size.Y >> 1
 
 		// Calculate tile position in pixels
-		tileWorldPx := float64(tile.X * maps.TileSize)
-		tileWorldPy := float64(tile.Y * maps.TileSize)
+		tileWorldPx := float64(tile.X * tiles.TileSize)
+		tileWorldPy := float64(tile.Y * tiles.TileSize)
 
 		// Calculate final screen position
 		finalX := screenCenterX + int(tileWorldPx-centerWorldPx)
@@ -187,10 +186,10 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 }
 
 func NewMapView(refresh chan struct{}) *MapView {
-	tm := maps.NewTileManager(
-		maps.NewCombinedTileProvider(
-			maps.NewOSMTileProvider(),
-			maps.NewLocalTileProvider(),
+	tm := tiles.NewTileManager(
+		tiles.NewCombinedTileProvider(
+			tiles.NewOSMTileProvider(),
+			tiles.NewLocalTileProvider(),
 		),
 	)
 	tm.SetOnLoadCallback(func() {
@@ -203,7 +202,7 @@ func NewMapView(refresh chan struct{}) *MapView {
 
 	return &MapView{
 		tileManager: tm,
-		center:      maps.LatLng{Lat: initialLatitude, Lng: initialLongitude}, // London
+		center:      tiles.LatLng{Lat: initialLatitude, Lng: initialLongitude}, // London
 		zoom:        4,
 		minZoom:     0,
 		maxZoom:     19,
@@ -221,8 +220,8 @@ func (mv *MapView) setZoom(newZoom int) {
 }
 
 func (mv *MapView) updateVisibleTiles() {
-	mv.metersPerPixel = maps.CalculateMetersPerPixel(mv.center.Lat, mv.zoom)
-	mv.visibleTiles = maps.CalculateVisibleTiles(mv.center, mv.zoom, mv.size)
+	mv.metersPerPixel = tiles.CalculateMetersPerPixel(mv.center.Lat, mv.zoom)
+	mv.visibleTiles = tiles.CalculateVisibleTiles(mv.center, mv.zoom, mv.size)
 
 	// Start loading tiles asynchronously
 	for _, tile := range mv.visibleTiles {

@@ -1,4 +1,4 @@
-package maps
+package tiles
 
 import (
 	"image"
@@ -40,7 +40,7 @@ func (p *CombinedTileProvider) GetTile(tile Tile) (image.Image, error) {
 
 	// Try to get the primary tile
 	img, err := p.primary.GetTile(tile)
-	
+
 	// Clear loading status
 	p.loadingMu.Lock()
 	delete(p.loading, key)
