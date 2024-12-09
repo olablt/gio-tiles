@@ -80,7 +80,8 @@ func (mv *MapView) Update(gtx layout.Context) {
 				mouseWorldY := worldY + mouseOffsetY
 
 				// Update zoom level smoothly
-				zoomDelta := float64(x.Scroll.Y) * -0.125 // Smaller increment for smoother zoom
+				// zoomDelta := float64(x.Scroll.Y) * -0.125 // Smaller increment for smoother zoom
+				zoomDelta := float64(x.Scroll.Y) * -0.025 // Smaller increment for smoother zoom
 				newZoom := mv.zoom + zoomDelta
 				newZoom = math.Max(float64(mv.minZoom), math.Min(newZoom, float64(mv.maxZoom)))
 
@@ -103,6 +104,8 @@ func (mv *MapView) Update(gtx layout.Context) {
 
 					mv.updateVisibleTiles()
 				}
+				x.Scroll = f32.Point{}
+
 			case pointer.Drag:
 				dragDelta = x.Position.Sub(mv.clickPos)
 				log.Println("pointer.Drag", dragDelta)
