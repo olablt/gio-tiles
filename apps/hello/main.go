@@ -264,6 +264,7 @@ func NewMapView(refresh chan struct{}) *MapView {
 		center:      tiles.LatLng{Lat: initialLatitude, Lng: initialLongitude}, // London
 		zoom:        4.0,
 		targetZoom:  4,
+		prevZoom:    4,
 		minZoom:     0,
 		maxZoom:     19,
 		list: &widget.List{
