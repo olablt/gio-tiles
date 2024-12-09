@@ -40,26 +40,40 @@ func (tm *TileManager) SetOnLoadCallback(callback func()) {
 }
 
 // getTileKey returns a unique string key for a tile
-func getTileKey(tile Tile) string {
+func GetTileKey(tile Tile) string {
 	return fmt.Sprintf("%d/%d/%d", tile.Zoom, tile.X, tile.Y)
 }
 
 func (tm *TileManager) GetTile(tile Tile) (image.Image, error) {
-	key := getTileKey(tile)
-	// log.Println("GetTile", key)
+	key := GetTileKey(tile)
 
+	// Check cache first
 	if cached, exists := tm.cache.Get(key); exists {
-		if img, ok := cached.(image.Image); ok {
-			return img, nil
+		switch tm.cache.GetType() {
+		case CacheImage:
+			if img, ok := cached.(image.Image); ok {
+				return img, nil
+			}
+		case CacheImageOp:
+			if imgOp, ok := cached.(paint.ImageOp); ok {
+				return imgOp.Image(), nil
+			}
 		}
 	}
 
+	// If not in cache, load from provider
 	img, err := tm.provider.GetTile(tile)
 	if err != nil {
 		return nil, err
 	}
 
-	tm.cache.Set(key, img)
+	// Cache according to type
+	switch tm.cache.GetType() {
+	case CacheImage:
+		tm.cache.Set(key, img)
+	case CacheImageOp:
+		tm.cache.Set(key, paint.NewImageOp(img))
+	}
 
 	if tm.onLoad != nil {
 		tm.onLoad()

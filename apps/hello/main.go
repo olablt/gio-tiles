@@ -156,36 +156,42 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 
 	// Draw all visible tiles
 	for _, tile := range mv.visibleTiles {
-		img, err := mv.tileManager.GetTile(tile)
-		if err != nil {
-			log.Printf("Error loading tile %v: %v", tile, err)
-			continue
+		var imageOp paint.ImageOp
+		key := tiles.GetTileKey(tile)
+		
+		// Try to get from cache first
+		if cached, ok := mv.tileManager.GetCache().Get(key); ok {
+			if imgOp, ok := cached.(paint.ImageOp); ok {
+				imageOp = imgOp
+			}
+		} else {
+			// If not in cache, load and cache it
+			img, err := mv.tileManager.GetTile(tile)
+			if err != nil {
+				log.Printf("Error loading tile %v: %v", tile, err)
+				continue
+			}
+			imageOp = paint.NewImageOp(img)
+			mv.tileManager.GetCache().Set(key, imageOp)
 		}
 
-		// Calculate center position in pixels at current zoom level
+		// Calculate positions
 		centerWorldPx, centerWorldPy := tiles.CalculateWorldCoordinates(mv.center, mv.zoom)
-
-		// Calculate screen center
 		screenCenterX := mv.size.X >> 1
 		screenCenterY := mv.size.Y >> 1
-
-		// Calculate tile position in pixels
 		tileWorldPx := float64(tile.X * tiles.TileSize)
 		tileWorldPy := float64(tile.Y * tiles.TileSize)
-
-		// Calculate final screen position
 		finalX := screenCenterX + int(tileWorldPx-centerWorldPx)
 		finalY := screenCenterY + int(tileWorldPy-centerWorldPy)
 
-		// Create transform stack and apply offset
-		transform := op.Offset(image.Point{X: finalX, Y: finalY}).Push(gtx.Ops)
-
-		// Draw the tile
-		imageOp := paint.NewImageOp(img)
-		imageOp.Add(gtx.Ops)
-		paint.PaintOp{}.Add(gtx.Ops)
-
-		transform.Pop()
+		// Draw only if tile is visible
+		if finalX+tiles.TileSize >= 0 && finalX <= mv.size.X &&
+			finalY+tiles.TileSize >= 0 && finalY <= mv.size.Y {
+			transform := op.Offset(image.Point{X: finalX, Y: finalY}).Push(gtx.Ops)
+			imageOp.Add(gtx.Ops)
+			paint.PaintOp{}.Add(gtx.Ops)
+			transform.Pop()
+		}
 	}
 
 	return layout.Dimensions{Size: mv.size}
