@@ -83,7 +83,7 @@ func (mv *MapView) Update(gtx layout.Context) {
 
 				// Update zoom level smoothly
 				// zoomDelta := float64(x.Scroll.Y) * -0.125 // Smaller increment for smoother zoom
-				zoomDelta := float64(x.Scroll.Y) * -0.025 // Smaller increment for smoother zoom
+				zoomDelta := float64(x.Scroll.Y) * -0.005 // Smaller increment for smoother zoom
 				newZoom := mv.zoom + zoomDelta
 				newZoom = math.Max(float64(mv.minZoom), math.Min(newZoom, float64(mv.maxZoom)))
 
@@ -172,7 +172,7 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 			if cached, ok := mv.tileManager.GetCache().Get(key); ok {
 				if imgOp, ok := cached.(paint.ImageOp); ok {
 					imageOp = imgOp
-					
+
 					// Calculate positions for previous zoom level tiles
 					centerWorldPx, centerWorldPy := tiles.CalculateWorldCoordinates(mv.center, float64(mv.prevZoom))
 					screenCenterX := mv.size.X >> 1
@@ -277,7 +277,7 @@ func NewMapView(refresh chan struct{}) *MapView {
 
 func (mv *MapView) updateVisibleTiles() {
 	mv.metersPerPixel = tiles.CalculateMetersPerPixel(mv.center.Lat, mv.targetZoom)
-	
+
 	// If target zoom changed, store current tiles as previous
 	newTargetZoom := int(math.Round(mv.zoom))
 	if newTargetZoom != mv.targetZoom {
@@ -285,7 +285,7 @@ func (mv *MapView) updateVisibleTiles() {
 		mv.prevTiles = mv.visibleTiles
 		mv.targetZoom = newTargetZoom
 	}
-	
+
 	mv.visibleTiles = tiles.CalculateVisibleTiles(mv.center, mv.targetZoom, mv.size)
 
 	// Start loading tiles asynchronously
