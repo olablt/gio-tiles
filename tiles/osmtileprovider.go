@@ -42,7 +42,7 @@ func (p *OSMTileProvider) GetTile(tile Tile) (image.Image, error) {
 	}
 	defer resp.Body.Close()
 
-	log.Printf("OSM tile response status: %s", resp.Status)
+	// log.Printf("OSM tile response status: %s", resp.Status)
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
@@ -53,7 +53,7 @@ func (p *OSMTileProvider) GetTile(tile Tile) (image.Image, error) {
 		return nil, err
 	}
 
-	log.Printf("Successfully loaded OSM tile: %v", tile)
+	// log.Printf("Successfully loaded OSM tile: %v", tile)
 	return img, nil
 }
 

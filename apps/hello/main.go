@@ -67,6 +67,7 @@ func (mv *MapView) Update(gtx layout.Context) {
 				mv.clickPos = x.Position
 				mv.dragging = true
 			case pointer.Scroll:
+				log.Println("pointer.Scroll", x.Scroll.Y)
 				// Get mouse position relative to screen center
 				screenCenterX := float64(mv.size.X >> 1)
 				screenCenterY := float64(mv.size.Y >> 1)
@@ -85,6 +86,7 @@ func (mv *MapView) Update(gtx layout.Context) {
 
 				// If zoom changed, adjust center to keep mouse position fixed
 				if newZoom != mv.zoom {
+					log.Println("newZoom", newZoom)
 					// Calculate the new world coordinates after zoom
 					zoomFactor := math.Pow(2, newZoom-mv.zoom)
 					mv.zoom = newZoom
@@ -202,10 +204,11 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 
 func NewMapView(refresh chan struct{}) *MapView {
 	tm := tiles.NewTileManager(
-		tiles.NewCombinedTileProvider(
-			tiles.NewOSMTileProvider(),
-			tiles.NewLocalTileProvider(),
-		),
+		// tiles.NewCombinedTileProvider(
+		// 	tiles.NewOSMTileProvider(),
+		// 	tiles.NewLocalTileProvider(),
+		// ),
+		tiles.NewLocalTileProvider(),
 		tiles.CacheImageOp,
 	)
 	tm.SetOnLoadCallback(func() {
