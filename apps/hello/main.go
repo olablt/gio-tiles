@@ -197,7 +197,7 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 	}
 
 	// Draw current zoom level tiles
-	baseScale := math.Pow(2, mv.zoom-float64(mv.targetZoom))
+	baseScale = math.Pow(2, mv.zoom-float64(mv.targetZoom))
 	for _, tile := range mv.visibleTiles {
 		var imageOp paint.ImageOp
 		key := tiles.GetTileKey(tile)
