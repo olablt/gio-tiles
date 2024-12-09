@@ -36,11 +36,13 @@ type MapView struct {
 	prevTiles      []tiles.Tile // Previous zoom level tiles
 	metersPerPixel float64
 	//
-	clickPos    f32.Point
-	dragging    bool
-	lastDragPos f32.Point
-	released    bool
-	refresh     chan struct{}
+	clickPos       f32.Point
+	dragging       bool
+	lastDragPos    f32.Point
+	released       bool
+	refresh        chan struct{}
+	currentCtx     context.Context
+	cancelCurrent  context.CancelFunc
 }
 
 func (mv *MapView) Update(gtx layout.Context) {
