@@ -197,6 +197,7 @@ func NewMapView(refresh chan struct{}) *MapView {
 			tiles.NewOSMTileProvider(),
 			tiles.NewLocalTileProvider(),
 		),
+		tiles.CacheImageOp,
 	)
 	tm.SetOnLoadCallback(func() {
 		// Non-blocking send to refresh channel
