@@ -131,9 +131,14 @@ func (mv *MapView) Update(gtx layout.Context) {
 			deltaX := dragDelta.X - mv.lastDragPos.X
 			deltaY := dragDelta.Y - mv.lastDragPos.Y
 
+			// Adjust delta based on current zoom scale
+			scale := math.Pow(2, mv.zoom-float64(mv.targetZoom))
+			adjustedDeltaX := float64(deltaX) / scale
+			adjustedDeltaY := float64(deltaY) / scale
+
 			// Convert screen movement to geographical coordinates using cached metersPerPixel
-			latChange := float64(deltaY) * mv.metersPerPixel / 111319.9
-			lngChange := -float64(deltaX) * mv.metersPerPixel / (111319.9 * math.Cos(mv.center.Lat*math.Pi/180))
+			latChange := adjustedDeltaY * mv.metersPerPixel / 111319.9
+			lngChange := -adjustedDeltaX * mv.metersPerPixel / (111319.9 * math.Cos(mv.center.Lat*math.Pi/180))
 
 			mv.center.Lat += latChange
 			mv.center.Lng += lngChange
