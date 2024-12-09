@@ -39,6 +39,9 @@ func (tm *TileManager) GetCache() Cache {
 
 func (tm *TileManager) SetOnLoadCallback(callback func()) {
 	tm.onLoad = callback
+	if provider, ok := tm.provider.(*CombinedTileProvider); ok {
+		provider.SetOnLoadCallback(callback)
+	}
 }
 
 // getTileKey returns a unique string key for a tile

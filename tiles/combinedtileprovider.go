@@ -6,10 +6,11 @@ import (
 )
 
 type CombinedTileProvider struct {
-	primary   TileProvider
-	fallback  TileProvider
-	loading   map[string]bool
-	loadingMu sync.RWMutex
+	primary    TileProvider
+	fallback   TileProvider
+	loading    map[string]bool
+	loadingMu  sync.RWMutex
+	onLoadFunc func()
 }
 
 func NewCombinedTileProvider(primary, fallback TileProvider) *CombinedTileProvider {
@@ -20,36 +21,43 @@ func NewCombinedTileProvider(primary, fallback TileProvider) *CombinedTileProvid
 	}
 }
 
+func (p *CombinedTileProvider) SetOnLoadCallback(callback func()) {
+	p.onLoadFunc = callback
+}
+
 func (p *CombinedTileProvider) GetTile(tile Tile) (image.Image, error) {
 	key := GetTileKey(tile)
+
+	// First try to get the fallback tile
+	fallbackImg, err := p.fallback.GetTile(tile)
+	if err != nil {
+		return nil, err
+	}
 
 	// Check if we're already loading this tile
 	p.loadingMu.RLock()
 	isLoading := p.loading[key]
 	p.loadingMu.RUnlock()
 
-	if isLoading {
-		// Return fallback tile while loading
-		return p.fallback.GetTile(tile)
+	if !isLoading {
+		// Start loading the primary tile in a goroutine
+		p.loadingMu.Lock()
+		p.loading[key] = true
+		p.loadingMu.Unlock()
+
+		go func() {
+			// Load primary tile asynchronously
+			if _, err := p.primary.GetTile(tile); err == nil && p.onLoadFunc != nil {
+				p.onLoadFunc() // Notify that a new tile is available
+			}
+
+			// Clear loading status
+			p.loadingMu.Lock()
+			delete(p.loading, key)
+			p.loadingMu.Unlock()
+		}()
 	}
 
-	// Mark tile as loading
-	p.loadingMu.Lock()
-	p.loading[key] = true
-	p.loadingMu.Unlock()
-
-	// Try to get the primary tile
-	img, err := p.primary.GetTile(tile)
-
-	// Clear loading status
-	p.loadingMu.Lock()
-	delete(p.loading, key)
-	p.loadingMu.Unlock()
-
-	if err != nil {
-		// If primary fails, return fallback
-		return p.fallback.GetTile(tile)
-	}
-
-	return img, nil
+	// Return the fallback tile immediately
+	return fallbackImg, nil
 }
