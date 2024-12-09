@@ -30,11 +30,13 @@ type MapView struct {
 	center         tiles.LatLng
 	zoom           float64 // Changed to float64 for smooth zooming
 	targetZoom     int     // The nearest integer zoom level for tile loading
+	prevZoom       int     // Previous integer zoom level for scaling old tiles
 	minZoom        int
 	maxZoom        int
 	list           *widget.List
 	size           image.Point
 	visibleTiles   []tiles.Tile
+	prevTiles      []tiles.Tile // Previous zoom level tiles
 	metersPerPixel float64
 	//
 	clickPos    f32.Point
@@ -160,7 +162,42 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 	// Declare `tag` as being one of the targets.
 	event.Op(gtx.Ops, tag)
 
-	// Draw all visible tiles
+	// Draw previous zoom level tiles first if we're between zoom levels
+	if math.Abs(mv.zoom-float64(mv.targetZoom)) > 0.01 && len(mv.prevTiles) > 0 {
+		prevScale := math.Pow(2, mv.zoom-float64(mv.prevZoom))
+		for _, tile := range mv.prevTiles {
+			var imageOp paint.ImageOp
+			key := tiles.GetTileKey(tile)
+
+			if cached, ok := mv.tileManager.GetCache().Get(key); ok {
+				if imgOp, ok := cached.(paint.ImageOp); ok {
+					imageOp = imgOp
+					
+					// Calculate positions for previous zoom level tiles
+					centerWorldPx, centerWorldPy := tiles.CalculateWorldCoordinates(mv.center, float64(mv.prevZoom))
+					screenCenterX := mv.size.X >> 1
+					screenCenterY := mv.size.Y >> 1
+					tileWorldPx := float64(tile.X * tiles.TileSize)
+					tileWorldPy := float64(tile.Y * tiles.TileSize)
+					finalX := screenCenterX + int(tileWorldPx-centerWorldPx)
+					finalY := screenCenterY + int(tileWorldPy-centerWorldPy)
+
+					if finalX+tiles.TileSize >= 0 && finalX <= mv.size.X &&
+						finalY+tiles.TileSize >= 0 && finalY <= mv.size.Y {
+						transformStack := op.Offset(image.Point{X: finalX, Y: finalY}).Push(gtx.Ops)
+						scaleStack := op.Affine(f32.Affine2D{}.Scale(f32.Point{}, f32.Point{X: float32(prevScale), Y: float32(prevScale)})).Push(gtx.Ops)
+						imageOp.Add(gtx.Ops)
+						paint.PaintOp{}.Add(gtx.Ops)
+						scaleStack.Pop()
+						transformStack.Pop()
+					}
+				}
+			}
+		}
+	}
+
+	// Draw current zoom level tiles
+	baseScale := math.Pow(2, mv.zoom-float64(mv.targetZoom))
 	for _, tile := range mv.visibleTiles {
 		var imageOp paint.ImageOp
 		key := tiles.GetTileKey(tile)
@@ -239,6 +276,15 @@ func NewMapView(refresh chan struct{}) *MapView {
 
 func (mv *MapView) updateVisibleTiles() {
 	mv.metersPerPixel = tiles.CalculateMetersPerPixel(mv.center.Lat, mv.targetZoom)
+	
+	// If target zoom changed, store current tiles as previous
+	newTargetZoom := int(math.Round(mv.zoom))
+	if newTargetZoom != mv.targetZoom {
+		mv.prevZoom = mv.targetZoom
+		mv.prevTiles = mv.visibleTiles
+		mv.targetZoom = newTargetZoom
+	}
+	
 	mv.visibleTiles = tiles.CalculateVisibleTiles(mv.center, mv.targetZoom, mv.size)
 
 	// Start loading tiles asynchronously
