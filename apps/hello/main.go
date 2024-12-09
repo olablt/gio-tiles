@@ -43,7 +43,7 @@ type MapView struct {
 	refresh     chan struct{}
 }
 
-func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
+func (mv *MapView) Update(gtx layout.Context) {
 	tag := mv
 
 	// process events
@@ -141,6 +141,12 @@ func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
 		mv.size = gtx.Constraints.Max
 		mv.updateVisibleTiles()
 	}
+}
+
+func (mv *MapView) Layout(gtx layout.Context) layout.Dimensions {
+	mv.Update(gtx)
+
+	tag := mv
 
 	// Confine the area of interest to a gtx Max
 	defer clip.Rect{Max: gtx.Constraints.Max}.Push(gtx.Ops).Pop()
