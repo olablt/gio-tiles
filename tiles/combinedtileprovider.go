@@ -21,7 +21,7 @@ func NewCombinedTileProvider(primary, fallback TileProvider) *CombinedTileProvid
 }
 
 func (p *CombinedTileProvider) GetTile(tile Tile) (image.Image, error) {
-	key := getTileKey(tile)
+	key := GetTileKey(tile)
 
 	// Check if we're already loading this tile
 	p.loadingMu.RLock()
