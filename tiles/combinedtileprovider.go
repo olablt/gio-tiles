@@ -11,6 +11,8 @@ type CombinedTileProvider struct {
 	loading    map[string]bool
 	loadingMu  sync.RWMutex
 	onLoadFunc func()
+	cache      map[string]image.Image
+	cacheMu    sync.RWMutex
 }
 
 func NewCombinedTileProvider(primary, fallback TileProvider) *CombinedTileProvider {
@@ -18,6 +20,7 @@ func NewCombinedTileProvider(primary, fallback TileProvider) *CombinedTileProvid
 		primary:  primary,
 		fallback: fallback,
 		loading:  make(map[string]bool),
+		cache:    make(map[string]image.Image),
 	}
 }
 
@@ -28,7 +31,15 @@ func (p *CombinedTileProvider) SetOnLoadCallback(callback func()) {
 func (p *CombinedTileProvider) GetTile(tile Tile) (image.Image, error) {
 	key := GetTileKey(tile)
 
-	// First try to get the fallback tile
+	// Check if we already have the primary tile cached
+	p.cacheMu.RLock()
+	if cachedImg, exists := p.cache[key]; exists {
+		p.cacheMu.RUnlock()
+		return cachedImg, nil
+	}
+	p.cacheMu.RUnlock()
+
+	// Get fallback tile
 	fallbackImg, err := p.fallback.GetTile(tile)
 	if err != nil {
 		return nil, err
@@ -47,8 +58,16 @@ func (p *CombinedTileProvider) GetTile(tile Tile) (image.Image, error) {
 
 		go func() {
 			// Load primary tile asynchronously
-			if _, err := p.primary.GetTile(tile); err == nil && p.onLoadFunc != nil {
-				p.onLoadFunc() // Notify that a new tile is available
+			if img, err := p.primary.GetTile(tile); err == nil {
+				// Cache the successfully loaded primary tile
+				p.cacheMu.Lock()
+				p.cache[key] = img
+				p.cacheMu.Unlock()
+
+				// Notify that a new tile is available
+				if p.onLoadFunc != nil {
+					p.onLoadFunc()
+				}
 			}
 
 			// Clear loading status
@@ -58,6 +77,6 @@ func (p *CombinedTileProvider) GetTile(tile Tile) (image.Image, error) {
 		}()
 	}
 
-	// Return the fallback tile immediately
+	// Return the fallback tile if we don't have the primary yet
 	return fallbackImg, nil
 }
