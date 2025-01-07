@@ -7,26 +7,46 @@ import (
 	_ "image/png"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 )
 
 type OSMTileProvider struct {
-	client *http.Client
+	progressMutex sync.Mutex
+	progress      map[string]int
+	client        *http.Client
 }
 
 func NewOSMTileProvider() *OSMTileProvider {
 	return &OSMTileProvider{
-		client: &http.Client{},
+		progressMutex: sync.Mutex{},
+		progress:      map[string]int{},
+		client:        &http.Client{},
 	}
 }
 
 func (p *OSMTileProvider) GetTile(tile Tile) (image.Image, error) {
 	url := p.GetTileURL(tile)
+
+	p.progressMutex.Lock()
+	if _, downloadInProgress := p.progress[url]; downloadInProgress {
+		p.progressMutex.Unlock()
+		log.Printf("OSM: Requested tile with existing download in progress for: %s", url)
+		return nil, fmt.Errorf("OSM: Requested tile with existing download in progress for: %s", url)
+	}
+
 	log.Printf("OSM: Requesting tile z=%d x=%d y=%d from %s", tile.Zoom, tile.X, tile.Y, url)
+	p.progress[url] = 0
+	p.progressMutex.Unlock()
 
 	// Create request with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	defer func() {
+		p.progressMutex.Lock()
+		delete(p.progress, url)
+		p.progressMutex.Unlock()
+		cancel()
+	}()
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
