@@ -1,12 +1,16 @@
 package tiles
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"image"
 	_ "image/png"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 )
@@ -25,21 +29,34 @@ func NewOSMTileProvider() *OSMTileProvider {
 	}
 }
 
+// GetTile retrieves the tile from an OSM URL and also integrates both
+// filesystem caching & duplicate request handling.
 func (p *OSMTileProvider) GetTile(tile Tile) (image.Image, error) {
 	url := p.GetTileURL(tile)
 
+	// Use filesystem cached tile if available
+	if dat, err := os.ReadFile(p.GetTileFSPath(tile)); err == nil {
+		if img, _, err := image.Decode(bytes.NewReader(dat)); err == nil {
+			return img, err
+		} else {
+			log.Printf("Error decoding cached tile to image from FS: %v", err)
+		}
+	} else {
+		log.Printf("Error reading cached tile from FS: %v", err)
+	}
+
+	// Nop if a download is already in progress for the same tile
 	p.progressMutex.Lock()
 	if _, downloadInProgress := p.progress[url]; downloadInProgress {
 		p.progressMutex.Unlock()
 		log.Printf("OSM: Requested tile with existing download in progress for: %s", url)
 		return nil, fmt.Errorf("OSM: Requested tile with existing download in progress for: %s", url)
 	}
-
 	log.Printf("OSM: Requesting tile z=%d x=%d y=%d from %s", tile.Zoom, tile.X, tile.Y, url)
 	p.progress[url] = 0
 	p.progressMutex.Unlock()
 
-	// Create request with timeout
+	// Download tile from HTTP
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer func() {
 		p.progressMutex.Lock()
@@ -47,35 +64,46 @@ func (p *OSMTileProvider) GetTile(tile Tile) (image.Image, error) {
 		p.progressMutex.Unlock()
 		cancel()
 	}()
-
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		log.Printf("Error creating request for tile %v: %v", tile, err)
 		return nil, err
 	}
-
-	// Add browser-like headers
 	req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0")
 	req.Header.Set("Accept", "image/webp,*/*")
 	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("Referer", "https://www.openstreetmap.org/")
-
 	resp, err := p.client.Do(req)
 	if err != nil {
 		log.Printf("Error fetching tile %v: %v", tile, err)
 		return nil, err
 	}
 	defer resp.Body.Close()
-
 	// log.Printf("OSM tile response status: %s", resp.Status)
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
+	// Decode downloaded tile as an image
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to read body %v", err)
+	}
+	resp.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
+	clonedReader := bytes.NewReader(bodyBytes)
 	img, _, err := image.Decode(resp.Body)
 	if err != nil {
 		log.Printf("Error decoding tile image %v: %v", tile, err)
+		return nil, err
+	}
+
+	// Save tile to the filesystem
+	if err := os.MkdirAll(filepath.Dir(p.GetTileFSPath(tile)), os.ModePerm); err != nil {
+		return nil, err
+	} else if clonedBodyBytes, err := ioutil.ReadAll(clonedReader); err != nil {
+		return nil, err
+	} else if err := os.WriteFile(p.GetTileFSPath(tile), clonedBodyBytes, os.ModePerm); err != nil {
 		return nil, err
 	}
 
@@ -87,4 +115,11 @@ func (p *OSMTileProvider) GetTile(tile Tile) (image.Image, error) {
 func (p *OSMTileProvider) GetTileURL(tile Tile) string {
 	return fmt.Sprintf("https://tile.openstreetmap.org/%d/%d/%d.png",
 		tile.Zoom, tile.X, tile.Y)
+}
+
+func (p *OSMTileProvider) GetTileFSPath(tile Tile) string {
+	return fmt.Sprintf(
+		"%s/%s/%d/%d/%d.png",
+		os.Getenv("HOME"), ".cache/gio-tiles/tiles", tile.Zoom, tile.X, tile.Y,
+	)
 }
